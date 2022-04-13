@@ -7,7 +7,8 @@ const (
 	joinRoom      requestMessageType = "join_room"
 	setPlayerName requestMessageType = "set_player_name"
 
-	roomList responseMessageType = "room_list"
+	roomList     responseMessageType = "room_list"
+	joinRoomFail responseMessageType = "join_room_fail"
 )
 
 type RequestMessage struct {

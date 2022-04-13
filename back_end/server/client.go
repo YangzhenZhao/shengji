@@ -65,7 +65,14 @@ func (c *Client) sendRoomList() {
 		Content:     string(content),
 	}
 	sendMessage, _ := json.Marshal(roomListMessage)
-	w, _ := c.Conn.NextWriter(websocket.TextMessage)
-	w.Write(sendMessage)
-	w.Close()
+	c.Conn.WriteMessage(websocket.TextMessage, sendMessage)
+}
+
+func (c *Client) sendJoinRoomFail(errMsg string) {
+	roomListMessage := ResponseMessage{
+		MessageType: joinRoomFail,
+		Content:     errMsg,
+	}
+	sendMessage, _ := json.Marshal(roomListMessage)
+	c.Conn.WriteMessage(websocket.TextMessage, sendMessage)
 }

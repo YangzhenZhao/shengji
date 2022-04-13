@@ -57,14 +57,16 @@ func (h *Hub) Run() {
 			log.Printf("%s 注册成功!\n", registerClientRequest.PlayerName)
 		case joinRoomRequest := <-h.JoinRoomRequestChan:
 			room := h.Rooms[joinRoomRequest.RoomID]
-			isJoin, position, clientHandlerChan := room.RegisterPlayer(joinRoomRequest)
+			isJoin, position, clientHandlerChan, errMsg := room.RegisterPlayer(joinRoomRequest)
+			client := h.Clients[joinRoomRequest.PlayerName]
 			if isJoin {
-				client := h.Clients[joinRoomRequest.PlayerName]
 				client.Room = &RoomDetail{
 					Position:    position,
 					HandlerChan: clientHandlerChan,
 				}
 				log.Printf("玩家 %s 加入房间成功! 房间 ID: %s\n", joinRoomRequest.PlayerName, joinRoomRequest.RoomID)
+			} else {
+				client.sendJoinRoomFail(errMsg)
 			}
 		}
 	}

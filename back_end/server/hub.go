@@ -1,34 +1,29 @@
 package server
 
 import (
-	"encoding/json"
 	"log"
 
 	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 )
-
-type serverMessageType string
-
-const (
-	roomList serverMessageType = "room_list"
-)
-
-type ServerMessage struct {
-	MessageType serverMessageType `json:"messageType"`
-	Content     string            `json:"content"`
-}
 
 type RegisterClientRequest struct {
 	PlayerName string
 	Client     *Client
 }
 
+type JoinRoomRequest struct {
+	PlayerName string
+	RoomID     string
+	Conn       *websocket.Conn
+}
+
 type Hub struct {
 	Clients map[string]*Client
 	Rooms   map[string]*Room
 
-	ReceiveChan        chan []byte
-	RegisterClientChan chan *RegisterClientRequest
+	RegisterClientChan  chan *RegisterClientRequest
+	JoinRoomRequestChan chan *JoinRoomRequest
 }
 
 func NewHub() *Hub {
@@ -38,11 +33,11 @@ func NewHub() *Hub {
 		Rooms: map[string]*Room{
 			roomID: {
 				ID:      roomID,
-				Clients: []*Client{},
+				Players: []*Player{},
 			},
 		},
-		ReceiveChan:        make(chan []byte),
-		RegisterClientChan: make(chan *RegisterClientRequest),
+		RegisterClientChan:  make(chan *RegisterClientRequest),
+		JoinRoomRequestChan: make(chan *JoinRoomRequest),
 	}
 }
 
@@ -60,13 +55,17 @@ func (h *Hub) Run() {
 		case registerClientRequest := <-h.RegisterClientChan:
 			h.Clients[registerClientRequest.PlayerName] = registerClientRequest.Client
 			log.Printf("%s 注册成功!\n", registerClientRequest.PlayerName)
-			content, _ := json.Marshal(h.roomList())
-			roomListMessage := ServerMessage{
-				MessageType: roomList,
-				Content:     string(content),
+		case joinRoomRequest := <-h.JoinRoomRequestChan:
+			room := h.Rooms[joinRoomRequest.RoomID]
+			isJoin, position, clientHandlerChan := room.RegisterPlayer(joinRoomRequest)
+			if isJoin {
+				client := h.Clients[joinRoomRequest.PlayerName]
+				client.Room = &RoomDetail{
+					Position:    position,
+					HandlerChan: clientHandlerChan,
+				}
+				log.Printf("玩家 %s 加入房间成功! 房间 ID: %s\n", joinRoomRequest.PlayerName, joinRoomRequest.RoomID)
 			}
-			sendMessage, _ := json.Marshal(roomListMessage)
-			registerClientRequest.Client.ReceiveChan <- sendMessage
 		}
 	}
 }

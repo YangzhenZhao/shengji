@@ -1,14 +1,13 @@
 package server
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/websocket"
 )
-
-type playerMessageType string
 
 const (
 	// Time allowed to read the next pong message from the peer.
@@ -17,15 +16,7 @@ const (
 	pingPeriod = (pongWait * 9) / 10
 	// Time allowed to write a message to the peer.
 	writeWait = 10 * time.Second
-
-	joinRoom      playerMessageType = "join_room"
-	setPlayerName playerMessageType = "set_player_name"
 )
-
-type PlayerMessage struct {
-	MessageType playerMessageType `json:"messageType"`
-	Content     string            `json:"content"`
-}
 
 var (
 	newline = []byte{'\n'}
@@ -40,13 +31,16 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
+type RoomDetail struct {
+	Position    int
+	HandlerChan chan []byte
+}
+
 type Client struct {
-	Hub          *Hub
-	PlayerName   string
-	Conn         *websocket.Conn
-	ReceiveChan  chan []byte
-	Room         *Room
-	JoinRoomChan chan *Room
+	Hub        *Hub
+	PlayerName string
+	Conn       *websocket.Conn
+	Room       *RoomDetail
 }
 
 func ServerWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
@@ -56,14 +50,22 @@ func ServerWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	client := &Client{
-		Hub:          hub,
-		PlayerName:   "",
-		Conn:         conn,
-		ReceiveChan:  make(chan []byte),
-		JoinRoomChan: make(chan *Room),
+		Hub:        hub,
+		PlayerName: "",
+		Conn:       conn,
 	}
-	log.Println(client.Room)
 	go client.tickerHandler()
 	go client.playerMessageHandler()
-	go client.serverMessageHandler()
+}
+
+func (c *Client) sendRoomList() {
+	content, _ := json.Marshal(c.Hub.roomList())
+	roomListMessage := ResponseMessage{
+		MessageType: roomList,
+		Content:     string(content),
+	}
+	sendMessage, _ := json.Marshal(roomListMessage)
+	w, _ := c.Conn.NextWriter(websocket.TextMessage)
+	w.Write(sendMessage)
+	w.Close()
 }

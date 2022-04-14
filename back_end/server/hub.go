@@ -28,13 +28,16 @@ type Hub struct {
 
 func NewHub() *Hub {
 	roomID := uuid.NewString()
+	room := &Room{
+		ID:                roomID,
+		Players:           []*Player{},
+		ClientHandlerChan: make(chan []byte),
+	}
+	go room.clientMessageHandler()
 	return &Hub{
 		Clients: make(map[string]*Client),
 		Rooms: map[string]*Room{
-			roomID: {
-				ID:      roomID,
-				Players: []*Player{},
-			},
+			roomID: room,
 		},
 		RegisterClientChan:  make(chan *RegisterClientRequest),
 		JoinRoomRequestChan: make(chan *JoinRoomRequest),
@@ -61,7 +64,7 @@ func (h *Hub) Run() {
 			client := h.Clients[joinRoomRequest.PlayerName]
 			if isJoin {
 				client.Room = &RoomDetail{
-					Position:    position,
+					Position:    int32(position),
 					HandlerChan: clientHandlerChan,
 				}
 				log.Printf("玩家 %s 加入房间成功! 房间 ID: %s\n", joinRoomRequest.PlayerName, joinRoomRequest.RoomID)

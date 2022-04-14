@@ -6,11 +6,13 @@ type responseMessageType string
 const (
 	joinRoom      requestMessageType = "join_room"
 	setPlayerName requestMessageType = "set_player_name"
+	prepare       requestMessageType = "prepare"
 
 	roomList          responseMessageType = "room_list"
 	joinRoomFail      responseMessageType = "join_room_fail"
 	newPlayerJoinRoom responseMessageType = "new_player_join_room"
 	existPlayers      responseMessageType = "exists_players"
+	hasPlayerPrepare  responseMessageType = "has_player_prepare"
 )
 
 type RequestMessage struct {

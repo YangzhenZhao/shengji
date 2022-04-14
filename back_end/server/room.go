@@ -2,47 +2,11 @@ package server
 
 import (
 	"encoding/json"
-
-	"github.com/gorilla/websocket"
+	"log"
+	"strconv"
 )
 
 const maxRoomPlayer = 4
-
-type Player struct {
-	Name string
-	Conn *websocket.Conn
-}
-
-type NewJoinMsg struct {
-	Position int    `json:"position"`
-	Name     string `json:"name"`
-}
-
-func (p *Player) notifyNewPlayerJoin(position int, name string) {
-	content, _ := json.Marshal(NewJoinMsg{
-		Position: position,
-		Name:     name,
-	})
-	message := ResponseMessage{
-		MessageType: newPlayerJoinRoom,
-		Content:     string(content),
-	}
-	sendMessage, _ := json.Marshal(message)
-	p.Conn.WriteMessage(websocket.TextMessage, sendMessage)
-}
-
-func (p *Player) notifyExistPlayers(names []string) {
-	if len(names) == 0 {
-		return
-	}
-	content, _ := json.Marshal(names)
-	message := ResponseMessage{
-		MessageType: existPlayers,
-		Content:     string(content),
-	}
-	sendMessage, _ := json.Marshal(message)
-	p.Conn.WriteMessage(websocket.TextMessage, sendMessage)
-}
 
 type Room struct {
 	ID      string
@@ -60,16 +24,61 @@ func (r *Room) RegisterPlayer(joinRoomRequest *JoinRoomRequest) (bool, int, chan
 	if len(r.Players) == maxRoomPlayer {
 		return false, -1, nil, "房间已满!"
 	}
-	var existPlayers []string
-	for _, player := range r.Players {
-		player.notifyNewPlayerJoin(len(r.Players)+1, joinRoomRequest.PlayerName)
-		existPlayers = append(existPlayers, player.Name)
+	var existPlayers []*ExistPlayerMsg
+	for i, player := range r.Players {
+		player.notifyNewPlayerJoin(int32(len(r.Players))+1, joinRoomRequest.PlayerName)
+		existPlayers = append(existPlayers, &ExistPlayerMsg{
+			Position: int32(i + 1),
+			Name:     player.Name,
+			Prepare:  player.Prepare,
+		})
 	}
 	newPlayer := &Player{
 		joinRoomRequest.PlayerName,
 		joinRoomRequest.Conn,
+		false,
 	}
 	newPlayer.notifyExistPlayers(existPlayers)
 	r.Players = append(r.Players, newPlayer)
 	return true, len(r.Players), r.ClientHandlerChan, ""
+}
+
+func (r *Room) clientMessageHandler() {
+	for {
+		message := <-r.ClientHandlerChan
+		playerMessage := RequestMessage{}
+		err := json.Unmarshal(message, &playerMessage)
+		if err != nil {
+			log.Printf("unmarshal playerMessage err: %+v", err)
+			continue
+		}
+		switch playerMessage.MessageType {
+		case prepare:
+			position, _ := strconv.ParseInt(playerMessage.Content, 10, 32)
+			r.Players[position-1].Prepare = true
+			for i, player := range r.Players {
+				if i+1 == int(position) {
+					continue
+				}
+				player.notifyPlayerPrepare(int32(position))
+			}
+			if r.isAllPrepare() {
+
+			}
+		default:
+			log.Println("用户信息格式错误!")
+		}
+	}
+}
+
+func (r *Room) isAllPrepare() bool {
+	if len(r.Players) != 4 {
+		return false
+	}
+	for _, player := range r.Players {
+		if !player.Prepare {
+			return false
+		}
+	}
+	return true
 }

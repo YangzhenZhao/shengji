@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -41,6 +42,10 @@ func (c *Client) playerMessageHandler() {
 			c.PlayerName = string(playerMessage.Content)
 			c.Hub.RegisterClientChan <- &RegisterClientRequest{PlayerName: c.PlayerName, Client: c}
 			c.sendRoomList()
+		case prepare:
+			playerMessage.Content = fmt.Sprintf("%d", c.Room.Position)
+			message, _ := json.Marshal(playerMessage)
+			c.Room.HandlerChan <- message
 		default:
 			log.Println("用户信息格式错误!")
 		}

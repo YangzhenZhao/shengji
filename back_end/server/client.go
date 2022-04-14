@@ -32,7 +32,7 @@ var upgrader = websocket.Upgrader{
 }
 
 type RoomDetail struct {
-	Position    int
+	Position    int32
 	HandlerChan chan []byte
 }
 

@@ -13,9 +13,10 @@ type RegisterClientRequest struct {
 }
 
 type JoinRoomRequest struct {
-	PlayerName string
-	RoomID     string
-	Conn       *websocket.Conn
+	PlayerName      string
+	RoomID          string
+	Conn            *websocket.Conn
+	ReceiveGameChan chan *Game
 }
 
 type Hub struct {
@@ -27,7 +28,7 @@ type Hub struct {
 }
 
 func NewHub() *Hub {
-	roomID := uuid.NewString()
+	roomID := "Room-" + uuid.NewString()
 	room := &Room{
 		ID:                roomID,
 		Players:           []*Player{},

@@ -37,10 +37,12 @@ type RoomDetail struct {
 }
 
 type Client struct {
-	Hub        *Hub
-	PlayerName string
-	Conn       *websocket.Conn
-	Room       *RoomDetail
+	Hub             *Hub
+	PlayerName      string
+	Conn            *websocket.Conn
+	Room            *RoomDetail
+	Game            *Game
+	ReceiveGameChan chan *Game
 }
 
 func ServerWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
@@ -50,12 +52,14 @@ func ServerWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	client := &Client{
-		Hub:        hub,
-		PlayerName: "",
-		Conn:       conn,
+		Hub:             hub,
+		PlayerName:      "",
+		Conn:            conn,
+		ReceiveGameChan: make(chan *Game),
 	}
 	go client.tickerHandler()
 	go client.playerMessageHandler()
+	go client.receiveGameHandler()
 }
 
 func (c *Client) sendRoomList() {

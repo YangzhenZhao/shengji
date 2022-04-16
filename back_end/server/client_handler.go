@@ -12,6 +12,7 @@ import (
 
 func (c *Client) playerMessageHandler() {
 	defer func() {
+		log.Printf("%s ws 关闭\n", c.PlayerName)
 		c.Conn.Close()
 	}()
 	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
@@ -22,6 +23,7 @@ func (c *Client) playerMessageHandler() {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
 			}
+			log.Printf("client handler 错误 err:%+v\n", err)
 			break
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
@@ -34,9 +36,10 @@ func (c *Client) playerMessageHandler() {
 		switch playerMessage.MessageType {
 		case joinRoom:
 			c.Hub.JoinRoomRequestChan <- &JoinRoomRequest{
-				PlayerName: c.PlayerName,
-				RoomID:     playerMessage.Content,
-				Conn:       c.Conn,
+				PlayerName:      c.PlayerName,
+				RoomID:          playerMessage.Content,
+				Conn:            c.Conn,
+				ReceiveGameChan: c.ReceiveGameChan,
 			}
 		case setPlayerName:
 			c.PlayerName = string(playerMessage.Content)
@@ -49,6 +52,13 @@ func (c *Client) playerMessageHandler() {
 		default:
 			log.Println("用户信息格式错误!")
 		}
+	}
+}
+
+func (c *Client) receiveGameHandler() {
+	for game := range c.ReceiveGameChan {
+		c.Game = game
+		log.Printf("hello %s 新的对局开始了!, 当前打 %s\n", c.PlayerName, game.Round)
 	}
 }
 

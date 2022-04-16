@@ -9,9 +9,10 @@ import (
 )
 
 type Player struct {
-	Name    string
-	Conn    *websocket.Conn
-	Prepare bool
+	Name            string
+	Conn            *websocket.Conn
+	Prepare         bool
+	ReceiveGameChan chan *Game
 }
 
 type NewJoinMsg struct {

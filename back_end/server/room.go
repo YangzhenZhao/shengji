@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"log"
 	"strconv"
+
+	"github.com/gorilla/websocket"
 )
 
 const maxRoomPlayer = 4
@@ -37,6 +39,7 @@ func (r *Room) RegisterPlayer(joinRoomRequest *JoinRoomRequest) (bool, int, chan
 		joinRoomRequest.PlayerName,
 		joinRoomRequest.Conn,
 		false,
+		joinRoomRequest.ReceiveGameChan,
 	}
 	newPlayer.notifyExistPlayers(existPlayers)
 	r.Players = append(r.Players, newPlayer)
@@ -63,7 +66,13 @@ func (r *Room) clientMessageHandler() {
 				player.notifyPlayerPrepare(int32(position))
 			}
 			if r.isAllPrepare() {
-
+				match := &Match{
+					FirstTeamRound:   "2",
+					SecondTeamRound:  "2",
+					PlayerConns:      r.playerConns(),
+					ReceiveGameChans: r.receiveGameChans(),
+				}
+				go match.Run()
 			}
 		default:
 			log.Println("用户信息格式错误!")
@@ -81,4 +90,20 @@ func (r *Room) isAllPrepare() bool {
 		}
 	}
 	return true
+}
+
+func (r *Room) playerConns() []*websocket.Conn {
+	var res []*websocket.Conn
+	for _, player := range r.Players {
+		res = append(res, player.Conn)
+	}
+	return res
+}
+
+func (r *Room) receiveGameChans() []chan *Game {
+	var res []chan *Game
+	for _, player := range r.Players {
+		res = append(res, player.ReceiveGameChan)
+	}
+	return res
 }

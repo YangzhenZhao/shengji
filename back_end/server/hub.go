@@ -8,11 +8,13 @@ import (
 )
 
 type RegisterClientRequest struct {
+	PlayerUUID string
 	PlayerName string
 	Client     *Client
 }
 
 type JoinRoomRequest struct {
+	PlayerUUID      string
 	PlayerName      string
 	RoomID          string
 	Conn            *websocket.Conn
@@ -57,12 +59,12 @@ func (h *Hub) Run() {
 	for {
 		select {
 		case registerClientRequest := <-h.RegisterClientChan:
-			h.Clients[registerClientRequest.PlayerName] = registerClientRequest.Client
-			log.Printf("%s 注册成功!\n", registerClientRequest.PlayerName)
+			h.Clients[registerClientRequest.Client.UUID] = registerClientRequest.Client
+			log.Printf("%s %s 注册成功!\n", registerClientRequest.PlayerName, registerClientRequest.PlayerUUID)
 		case joinRoomRequest := <-h.JoinRoomRequestChan:
 			room := h.Rooms[joinRoomRequest.RoomID]
 			isJoin, position, clientHandlerChan, errMsg := room.RegisterPlayer(joinRoomRequest)
-			client := h.Clients[joinRoomRequest.PlayerName]
+			client := h.Clients[joinRoomRequest.PlayerUUID]
 			if isJoin {
 				client.Room = &RoomDetail{
 					Position:    int32(position),

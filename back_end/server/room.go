@@ -26,23 +26,28 @@ func (r *Room) RegisterPlayer(joinRoomRequest *JoinRoomRequest) (bool, int, chan
 	if len(r.Players) == maxRoomPlayer {
 		return false, -1, nil, "房间已满!"
 	}
-	var existPlayers []*ExistPlayerMsg
-	for i, player := range r.Players {
-		player.notifyNewPlayerJoin(int32(len(r.Players))+1, joinRoomRequest.PlayerName)
-		existPlayers = append(existPlayers, &ExistPlayerMsg{
-			Position: int32(i + 1),
-			Name:     player.Name,
-			Prepare:  player.Prepare,
-		})
-	}
+
 	newPlayer := &Player{
 		joinRoomRequest.PlayerName,
 		joinRoomRequest.Conn,
 		false,
 		joinRoomRequest.ReceiveGameChan,
 	}
-	newPlayer.notifyExistPlayers(existPlayers)
 	r.Players = append(r.Players, newPlayer)
+
+	var existPlayers []*ExistPlayerMsg
+	for i, player := range r.Players {
+		existPlayers = append(existPlayers, &ExistPlayerMsg{
+			Position: int32(i + 1),
+			Name:     player.Name,
+			Prepare:  player.Prepare,
+		})
+	}
+
+	for _, player := range r.Players {
+		player.notifyExistPlayers(existPlayers)
+	}
+
 	return true, len(r.Players), r.ClientHandlerChan, ""
 }
 

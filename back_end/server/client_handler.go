@@ -33,17 +33,25 @@ func (c *Client) playerMessageHandler() {
 			log.Printf("unmarshal playerMessage err: %+v", err)
 			continue
 		}
+		log.Printf("player message: %+v\n", playerMessage)
 		switch playerMessage.MessageType {
 		case joinRoom:
 			c.Hub.JoinRoomRequestChan <- &JoinRoomRequest{
+				PlayerUUID:      c.UUID,
 				PlayerName:      c.PlayerName,
 				RoomID:          playerMessage.Content,
 				Conn:            c.Conn,
 				ReceiveGameChan: c.ReceiveGameChan,
 			}
 		case setPlayerName:
-			c.PlayerName = string(playerMessage.Content)
-			c.Hub.RegisterClientChan <- &RegisterClientRequest{PlayerName: c.PlayerName, Client: c}
+			playerMeta, err := getPlayerMeta(playerMessage.Content)
+			if err != nil {
+				log.Printf("unmarshal playerMeta err: %+v", err)
+				continue
+			}
+			c.PlayerName = playerMeta.PlayerName
+			c.UUID = playerMeta.UUID
+			c.Hub.RegisterClientChan <- &RegisterClientRequest{PlayerName: c.PlayerName, PlayerUUID: c.UUID, Client: c}
 			c.sendRoomList()
 		case prepare:
 			playerMessage.Content = fmt.Sprintf("%d", c.Room.Position)

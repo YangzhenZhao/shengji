@@ -26,23 +26,7 @@ type ExistPlayerMsg struct {
 	Prepare  bool   `json:"prepare"`
 }
 
-func (p *Player) notifyNewPlayerJoin(position int32, name string) {
-	content, _ := json.Marshal(NewJoinMsg{
-		Position: position,
-		Name:     name,
-	})
-	message := ResponseMessage{
-		MessageType: newPlayerJoinRoom,
-		Content:     string(content),
-	}
-	sendMessage, _ := json.Marshal(message)
-	p.Conn.WriteMessage(websocket.TextMessage, sendMessage)
-}
-
 func (p *Player) notifyExistPlayers(existPlayersMsg []*ExistPlayerMsg) {
-	if len(existPlayersMsg) == 0 {
-		return
-	}
 	content, _ := json.Marshal(existPlayersMsg)
 	message := ResponseMessage{
 		MessageType: existPlayers,

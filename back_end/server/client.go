@@ -38,6 +38,7 @@ type RoomDetail struct {
 
 type Client struct {
 	Hub             *Hub
+	UUID            string
 	PlayerName      string
 	Conn            *websocket.Conn
 	Room            *RoomDetail
@@ -46,6 +47,7 @@ type Client struct {
 }
 
 func ServerWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
+	log.Println("ws connected.")
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)

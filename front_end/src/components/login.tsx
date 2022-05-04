@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import TextField from '@mui/material/TextField';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -6,7 +6,7 @@ import Typography from '@mui/material/Typography';
 import { red, grey } from '@mui/material/colors';
 import Button from '@mui/material/Button';
 
-export const LoginScreen = () => {
+export const LoginScreen = ({playerName, setPlayerName, setIsSetName}: any) => {    
     return (
         <Card sx={{ height: '100vh' }}>
             <CardContent sx={{bgcolor: red[500], height: '5vh'}}>
@@ -26,6 +26,10 @@ export const LoginScreen = () => {
                     color="error" 
                     focused 
                     margin='normal'
+                    value={playerName}
+                    onChange={e => {
+                        setPlayerName(e.target.value)
+                    }}
                     sx={{
                         fontSize: "40"
                     }}
@@ -36,7 +40,7 @@ export const LoginScreen = () => {
                         textAlign: "center",
                     }}
                 >
-                    <Button variant="contained" color="success" size="large">开始游戏</Button>
+                    <Button variant="contained" color="success" size="large" onClick={() => setIsSetName(true)}>开始游戏</Button>
                 </CardContent>
             </CardContent>
         </Card>

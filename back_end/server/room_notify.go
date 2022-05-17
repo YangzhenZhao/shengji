@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 
 	"github.com/gorilla/websocket"
@@ -10,6 +9,7 @@ import (
 
 type Player struct {
 	Name            string
+	UUID            string
 	Conn            *websocket.Conn
 	Prepare         bool
 	ReceiveGameChan chan *Game
@@ -21,27 +21,47 @@ type NewJoinMsg struct {
 }
 
 type ExistPlayerMsg struct {
-	Position int32  `json:"position"`
-	Name     string `json:"name"`
-	Prepare  bool   `json:"prepare"`
+	Name    string `json:"name"`
+	Prepare bool   `json:"prepare"`
 }
 
-func (p *Player) notifyExistPlayers(existPlayersMsg []*ExistPlayerMsg) {
-	content, _ := json.Marshal(existPlayersMsg)
+var TeamMateMap = map[int]int{
+	0: 1,
+	1: 0,
+	2: 3,
+	3: 2,
+}
+var OpponentMap = map[int][2]int{
+	0: {2, 3},
+	1: {2, 3},
+	2: {0, 1},
+	3: {0, 1},
+}
+
+func (p *Player) notifyExistPlayers(existPlayersMsg []*ExistPlayerMsg, idx int) {
+	log.Printf("%s notify %+v\n", p.Name, existPlayersMsg)
+	sendPlayerMsg := []*ExistPlayerMsg{
+		existPlayersMsg[idx],
+		nil,
+		nil,
+		nil,
+	}
+	teamMateIdx := TeamMateMap[idx]
+	if teamMateIdx+1 <= len(existPlayersMsg) {
+		sendPlayerMsg[1] = existPlayersMsg[teamMateIdx]
+	}
+	oppose1Idx, oppose2Idx := OpponentMap[idx][0], OpponentMap[idx][1]
+	if oppose1Idx+1 <= len(existPlayersMsg) {
+		sendPlayerMsg[2] = existPlayersMsg[oppose1Idx]
+	}
+	if oppose2Idx+1 <= len(existPlayersMsg) {
+		sendPlayerMsg[3] = existPlayersMsg[oppose2Idx]
+	}
+	content, _ := json.Marshal(sendPlayerMsg)
 	message := ResponseMessage{
 		MessageType: existPlayers,
 		Content:     string(content),
 	}
 	sendMessage, _ := json.Marshal(message)
-	p.Conn.WriteMessage(websocket.TextMessage, sendMessage)
-}
-
-func (p *Player) notifyPlayerPrepare(position int32) {
-	message := ResponseMessage{
-		MessageType: hasPlayerPrepare,
-		Content:     fmt.Sprintf("%d", position),
-	}
-	sendMessage, _ := json.Marshal(message)
-	log.Printf("%s notify prepare %s\n", p.Name, string(sendMessage))
 	p.Conn.WriteMessage(websocket.TextMessage, sendMessage)
 }

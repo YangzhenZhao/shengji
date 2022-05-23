@@ -5,6 +5,8 @@ import pokerImage from "../assets/poker.png"
 import beginGame from "../assets/btn/begin.png"
 import prepareOk from "../assets/btn/prepare_ok.png"
 import { nanoid } from 'nanoid'
+import { Match } from './match';
+
 
 const SET_PLAYER_NAME_REQUEST = "set_player_name"
 const JOIN_ROOM_REQUEST = "join_room"
@@ -43,12 +45,27 @@ interface Player {
     prepare: boolean
 }
 
+interface Poker {
+    color: string
+    number: string
+}
+
+interface Cards {
+    spadeCards: Poker[]
+    heartCards: Poker[]
+    clubCards: Poker[]
+    dianmondCards: Poker[]
+    cardNum: number
+}
+
 export class GameScene extends Phaser.Scene {
     public playerName
     public websocket: WebSocket | null
     public players: Player[]
     public prepareBtn: Phaser.GameObjects.Image
     public prepareOkImg: Phaser.GameObjects.Image[]
+    public playersCards: Cards[]
+    public match: Match
     constructor(playerName: string) {
         super("GameScene")
         this.playerName = playerName
@@ -58,6 +75,8 @@ export class GameScene extends Phaser.Scene {
         this.websocket = null
         this.getPlayerMsgCnt = 0
         this.prepareOkImg = [null, null, null, null]
+        this.playersCards = [null, null, null, null]
+        this.match = Match()
     }
 
     preload () {
@@ -108,7 +127,7 @@ export class GameScene extends Phaser.Scene {
             x += 26;
         }
 
-        this.websocket = new WebSocket("ws://192.168.1.115:8080/ws")
+        this.websocket = new WebSocket("ws://192.168.1.8:8080/ws")
         this.websocket.onopen = this.onopen.bind(this)
         this.websocket.onmessage = this.onmessage.bind(this)
     }

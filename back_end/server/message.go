@@ -12,6 +12,7 @@ const (
 	joinRoomFail     responseMessageType = "join_room_fail"
 	existPlayers     responseMessageType = "exists_players"
 	hasPlayerPrepare responseMessageType = "has_player_prepare"
+	dealPoker        responseMessageType = "deal_poker"
 )
 
 type RequestMessage struct {

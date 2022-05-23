@@ -18,8 +18,8 @@ const (
 )
 
 type Poker struct {
-	Color  string
-	Number string
+	Color  string `json:"color"`
+	Number string `json:"number"`
 }
 
 var numberList []string

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"log"
 
 	"github.com/gorilla/websocket"
@@ -14,6 +15,7 @@ type Match struct {
 }
 
 func (m *Match) Run() {
+	m.sendMatchBegin()
 	firstTeamRound := "2"
 	secondTeamRound := "2"
 	round := "2"
@@ -40,7 +42,16 @@ func (m *Match) Run() {
 		log.Println(gameResult)
 		isFristRound = false
 	}
+}
 
+func (m *Match) sendMatchBegin() {
+	for _, conn := range m.PlayerConns {
+		roomListMessage := ResponseMessage{
+			MessageType: matchBegin,
+		}
+		sendMessage, _ := json.Marshal(roomListMessage)
+		conn.WriteMessage(websocket.TextMessage, sendMessage)
+	}
 }
 
 func (m *Match) isFinish(game *Game, gameResult *GameResult) bool {

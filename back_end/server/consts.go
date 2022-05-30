@@ -1,9 +1,5 @@
 package server
 
-import (
-	"log"
-)
-
 const (
 	// 黑桃
 	spade = "spade"
@@ -49,8 +45,4 @@ func init() {
 			Number: "joker",
 		})
 	}
-
-	log.Println(cardsList)
-	randomList := shufflePokers(cardsList)
-	log.Println(randomList)
 }

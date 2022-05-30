@@ -6,14 +6,12 @@ import beginGame from "../assets/btn/begin.png"
 import prepareOk from "../assets/btn/prepare_ok.png"
 import { nanoid } from 'nanoid'
 import { Match } from './match';
-
-
-const SET_PLAYER_NAME_REQUEST = "set_player_name"
-const JOIN_ROOM_REQUEST = "join_room"
-const PREPARE_REQUEST = "prepare"
-
-const ROOM_LIST_RESPONSE = "room_list"
-const EXISTS_PLAYERS_RESPONSE = "exists_players"
+import { GameDetail } from './game_detail';
+import { 
+    Player, Poker, Cards, SPADE, HEART, CLUB, DIANMOND, getPokerPosition,
+    SET_PLAYER_NAME_REQUEST, JOIN_ROOM_REQUEST, PREPARE_REQUEST, 
+    ROOM_LIST_RESPONSE, EXISTS_PLAYERS_RESPONSE, DEAL_POKER, MATCH_BEGIN
+} from './dto'
 
 const screenWidth = document.documentElement.clientWidth;
 const screenHeight =  document.documentElement.clientHeight;
@@ -39,23 +37,14 @@ const prepareOkPositions = [
     {x: 72, y: screenHeight / 2.65},
     {x: screenWidth - 230, y: screenHeight / 2.65}
 ]
-
-interface Player {
-    name: string
-    prepare: boolean
-}
-
-interface Poker {
-    color: string
-    number: string
-}
-
-interface Cards {
-    spadeCards: Poker[]
-    heartCards: Poker[]
-    clubCards: Poker[]
-    dianmondCards: Poker[]
-    cardNum: number
+let pokerPositions = []
+var x = 200;
+for (let i = 0; i < 25; i++) {
+    pokerPositions.push({
+        x: x,
+        y: screenHeight - 160,
+    })
+    x += 26;
 }
 
 export class GameScene extends Phaser.Scene {
@@ -64,8 +53,9 @@ export class GameScene extends Phaser.Scene {
     public players: Player[]
     public prepareBtn: Phaser.GameObjects.Image
     public prepareOkImg: Phaser.GameObjects.Image[]
-    public playersCards: Cards[]
+    public playersCards: Cards
     public match: Match
+    public gameDetail: GameDetail
     constructor(playerName: string) {
         super("GameScene")
         this.playerName = playerName
@@ -75,8 +65,17 @@ export class GameScene extends Phaser.Scene {
         this.websocket = null
         this.getPlayerMsgCnt = 0
         this.prepareOkImg = [null, null, null, null]
-        this.playersCards = [null, null, null, null]
-        this.match = Match()
+        this.playersCards = {
+            spadeCards: [],
+            heartCards: [],
+            clubCards: [],
+            dianmondCards: [],
+            jokers: [],
+            playNumberCards: [],
+            cardNum: 0,
+        }
+        this.match = new Match(this)
+        this.gameDetail = new GameDetail(this)
     }
 
     preload () {
@@ -105,29 +104,8 @@ export class GameScene extends Phaser.Scene {
     
         this.showScore = this.add.text(screenWidth - 100, 10, "得分\n0").setFontSize(20).setShadow(2, 2, "#333333", 2, true, true);
         this.score = 0
-    
-    
-        var x = 200;
-        var y = screenHeight - 160;
-    
-        for (let i = 0; i < 25; i++) {
-            let image = this.add.sprite(x, y, 'poker', i).setOrigin(0, 0).setInteractive();
-            image.on('pointerup', () => {
-                if (image.data === null || image.getData("status") === "down") {
-                image.setData("status", "up")
-                image.y -= 30
-    
-                this.score += 5
-                this.showScore.setText("得分\n"+this.score)
-                } else {
-                image.setData("status", "down")
-                image.y += 30
-                }
-            })
-            x += 26;
-        }
 
-        this.websocket = new WebSocket("ws://192.168.1.8:8080/ws")
+        this.websocket = new WebSocket("ws://127.0.0.1:8080/ws")
         this.websocket.onopen = this.onopen.bind(this)
         this.websocket.onmessage = this.onmessage.bind(this)
     }
@@ -158,14 +136,12 @@ export class GameScene extends Phaser.Scene {
                 if (playersMsgs[i] === null) {
                     continue
                 }
-                this.players[i] = playersMsgs[i]
                 this.playersTexts[i].setText(playersMsgs[i].name).setColor('white')
-                console.log(i, "hhhhhhhh", playersMsgs[i].prepare)
-                if (playersMsgs[i].prepare) {
-                    console.log('hhhhhhhhhhh ...........')
+                if ((this.players[i] === null || !this.players[i].prepare) && playersMsgs[i].prepare) {
                     this.prepareOkImg[i] = this.add.image(prepareOkPositions[i].x, prepareOkPositions[i].y, 'prepareOk').setOrigin(0, 0).setDisplaySize(150, 125).setInteractive()
                 }
                 console.log(i, playersMsgs[i])
+                this.players[i] = playersMsgs[i]
             }
             this.getPlayerMsgCnt += 1
             if (this.getPlayerMsgCnt === 1) {
@@ -173,11 +149,49 @@ export class GameScene extends Phaser.Scene {
                 this.prepareBtn.on("pointerdown", function (event) {
                     this.prepareBtn.destroy()
                     this.prepareOkImg[0] = this.add.image(prepareOkPositions[0].x, prepareOkPositions[0].y, 'prepareOk').setOrigin(0, 0).setDisplaySize(150, 125).setInteractive()
-                    console.log('hhh hover')
                     this.sendMessageToServer(PREPARE_REQUEST, "")
                 }.bind(this))
             }
+        } else if (messageType === DEAL_POKER) {
+            this.dealPoker(JSON.parse(content))
+        } else if (messageType === MATCH_BEGIN) {
+            for (let i = 0; i < 4; i++) {
+                this.prepareOkImg[i].destroy()
+            }
         }
+    }
+
+    dealPoker(poker: Poker) {
+        if (poker.number === "joker") {
+            this.playersCards.jokers.push(poker)
+        } else if (poker.number === this.gameDetail.playNumber) {
+            this.playersCards.playNumberCards.push(poker)
+        } else if (poker.color === SPADE) {
+            this.playersCards.spadeCards.push(poker)
+        } else if (poker.color === HEART) {
+            this.playersCards.heartCards.push(poker)
+        } else if (poker.color === CLUB) {
+            this.playersCards.clubCards.push(poker)
+        } else {
+            this.playersCards.dianmondCards.push(poker)
+        }
+
+        let x = pokerPositions[this.playersCards.cardNum].x
+        let y = pokerPositions[this.playersCards.cardNum].y
+        let image = this.add.sprite(x, y, 'poker', getPokerPosition(poker)).setOrigin(0, 0).setInteractive();
+        image.on('pointerup', () => {
+            if (image.data === null || image.getData("status") === "down") {
+            image.setData("status", "up")
+            image.y -= 30
+
+            this.score += 5
+            this.showScore.setText("得分\n"+this.score)
+            } else {
+            image.setData("status", "down")
+            image.y += 30
+            }
+        })
+        this.playersCards.cardNum += 1
     }
     
     sendMessageToServer(messageType: string, content: string) {

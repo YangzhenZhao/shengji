@@ -12,6 +12,7 @@ const (
 	joinRoomFail     responseMessageType = "join_room_fail"
 	existPlayers     responseMessageType = "exists_players"
 	hasPlayerPrepare responseMessageType = "has_player_prepare"
+	matchBegin       responseMessageType = "match_begin"
 	dealPoker        responseMessageType = "deal_poker"
 )
 

@@ -78,7 +78,7 @@ func (g *Game) Run() {
 	}
 	wg.Add(1)
 	go func() {
-		// TODO: 添加亮主逻辑
+		// TODO: 添加 "亮主" 相关逻辑
 		fmt.Println("等待亮主!")
 	}()
 	wg.Wait()

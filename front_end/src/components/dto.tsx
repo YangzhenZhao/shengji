@@ -1,11 +1,15 @@
 export const SET_PLAYER_NAME_REQUEST = "set_player_name"
 export const JOIN_ROOM_REQUEST = "join_room"
 export const PREPARE_REQUEST = "prepare"
+export const SHOW_MASTER = "show_master"
+export const SHOW_MASTER_DONE = "show_master_done"
 
 export const ROOM_LIST_RESPONSE = "room_list"
 export const EXISTS_PLAYERS_RESPONSE = "exists_players"
 export const DEAL_POKER = "deal_poker"
 export const MATCH_BEGIN = "match_begin"
+
+export const FULL_POKER_NUM = 25
 
 export interface Player {
     name: string

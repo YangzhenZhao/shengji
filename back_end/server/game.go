@@ -3,8 +3,8 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
-	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -34,13 +34,13 @@ type GameResult struct {
 }
 
 type Game struct {
-	Round           string
-	FirstTeamRound  string
-	SecondTeamRound string
-	IsFristRound    bool
-	Banker          banker
-	PlayerConns     []*websocket.Conn
-	GameResultChan  chan *GameResult
+	Round              string
+	FirstTeamRound     string
+	SecondTeamRound    string
+	IsFristRound       bool
+	Banker             banker
+	PlayerConns        []*websocket.Conn
+	ShowMasterDoneChan chan bool
 }
 
 func (g *Game) bankerTeam() teamType {
@@ -63,26 +63,31 @@ func (g *Game) sendDealPoker(playerIdx int, poker Poker) {
 	g.PlayerConns[playerIdx].WriteMessage(websocket.TextMessage, sendMessage)
 }
 
-func (g *Game) Run() {
-	var wg sync.WaitGroup
+func (g *Game) Run() *GameResult {
 	dealPokers := shufflePokers(cardsList)
 	for i := 0; i < 4; i++ {
-		wg.Add(1)
 		tmpIdx := i
 		go func() {
-			defer wg.Done()
 			for pokerIdx := tmpIdx * 25; pokerIdx < (tmpIdx+1)*25; pokerIdx++ {
 				g.sendDealPoker(tmpIdx, dealPokers[pokerIdx])
 			}
 		}()
 	}
-	wg.Add(1)
 	go func() {
 		// TODO: 添加 "亮主" 相关逻辑
 		fmt.Println("等待亮主!")
 	}()
-	wg.Wait()
-	g.GameResultChan <- &GameResult{}
+	for i := 0; i < 4; i++ {
+		<-g.ShowMasterDoneChan
+	}
+	log.Println("亮主完成")
+	stuckChan := make(chan bool)
+	stuckChan <- false
+	return &GameResult{}
+}
+
+func (g *Game) receiveShowMasterDone() {
+	g.ShowMasterDoneChan <- true
 }
 
 func shufflePokers(src []Poker) []Poker {

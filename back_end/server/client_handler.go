@@ -57,6 +57,8 @@ func (c *Client) playerMessageHandler() {
 			playerMessage.Content = fmt.Sprintf("%d", c.Room.Position)
 			message, _ := json.Marshal(playerMessage)
 			c.Room.HandlerChan <- message
+		case showMasterDone:
+			c.Game.receiveShowMasterDone()
 		default:
 			log.Println("用户信息格式错误!")
 		}
@@ -66,7 +68,7 @@ func (c *Client) playerMessageHandler() {
 func (c *Client) receiveGameHandler() {
 	for game := range c.ReceiveGameChan {
 		c.Game = game
-		log.Printf("hello %s 新的对局开始了!, 当前打 %s\n", c.PlayerName, game.Round)
+		log.Printf("hello %s 新的对局开始了!, 当前打 %s %+v\n", c.PlayerName, game.Round, game)
 	}
 }
 

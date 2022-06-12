@@ -4,14 +4,18 @@ import bgimage from "../assets/bg2.jpg"
 import pokerImage from "../assets/poker.png"
 import beginGame from "../assets/btn/begin.png"
 import prepareOk from "../assets/btn/prepare_ok.png"
+import flowerImages from "../assets/flower_color.jpeg"
+import jokerImage from "../assets/joker.webp"
 import { nanoid } from 'nanoid'
 import { Match } from './match';
 import { GameDetail } from './game_detail';
 import { 
     Player, Poker, Cards, SPADE, HEART, CLUB, DIANMOND, getPokerPosition,
     SET_PLAYER_NAME_REQUEST, JOIN_ROOM_REQUEST, PREPARE_REQUEST, 
-    ROOM_LIST_RESPONSE, EXISTS_PLAYERS_RESPONSE, DEAL_POKER, MATCH_BEGIN
+    ROOM_LIST_RESPONSE, EXISTS_PLAYERS_RESPONSE, DEAL_POKER, MATCH_BEGIN,
+    SHOW_MASTER_DONE, FULL_POKER_NUM
 } from './dto'
+import dayjs from 'dayjs';
 
 const screenWidth = document.documentElement.clientWidth;
 const screenHeight =  document.documentElement.clientHeight;
@@ -56,10 +60,11 @@ export class GameScene extends Phaser.Scene {
     public playersCards: Cards
     public match: Match
     public gameDetail: GameDetail
+    public pokerImages: Phaser.GameObjects.Image[]
+    public showMasterImages: Phaser.GameObjects.Image[]
     constructor(playerName: string) {
         super("GameScene")
         this.playerName = playerName
-        this.existPlayers = [1]
         this.playersTexts = []
         this.players = [{name: playerName, prepare: false}, null, null, null]
         this.websocket = null
@@ -76,16 +81,25 @@ export class GameScene extends Phaser.Scene {
         }
         this.match = new Match(this)
         this.gameDetail = new GameDetail(this)
+        this.pokerImages = []
+        this.showMasterImages = []
     }
 
     preload () {
+        console.log(dayjs().format())
         this.load.image("bg2", bgimage)
         this.load.image("beginGame", beginGame)
         this.load.image("prepareOk", prepareOk)
+        this.load.image("jokerImage", jokerImage)
         this.load.spritesheet('poker', pokerImage, {
             frameWidth: 90,
             frameHeight: 120
         });
+        this.load.spritesheet('flowerImages', flowerImages, {
+            frameWidth: 250,
+            frameHeight: 250
+        });
+        
     }
 
     create() {
@@ -176,24 +190,72 @@ export class GameScene extends Phaser.Scene {
             this.playersCards.dianmondCards.push(poker)
         }
 
-        let x = pokerPositions[this.playersCards.cardNum].x
-        let y = pokerPositions[this.playersCards.cardNum].y
-        let image = this.add.sprite(x, y, 'poker', getPokerPosition(poker)).setOrigin(0, 0).setInteractive();
-        image.on('pointerup', () => {
-            if (image.data === null || image.getData("status") === "down") {
-            image.setData("status", "up")
-            image.y -= 30
-
-            this.score += 5
-            this.showScore.setText("得分\n"+this.score)
-            } else {
-            image.setData("status", "down")
-            image.y += 30
-            }
-        })
         this.playersCards.cardNum += 1
+
+        this.gameDetail.onDealPoker(poker)
+        this.showPokers()
+        this.gameDetail.showMaster()
+
+        if (this.playersCards.cardNum === FULL_POKER_NUM) {
+            this.waitShowMaster()
+        }
     }
-    
+
+    showPokers() {
+        for (let i = 0; i < this.pokerImages.length; i++) {
+            this.pokerImages[i].destroy()
+        }
+        this.pokerImages = []
+        let position = this.showSomePokers(0, this.playersCards.jokers)
+        position = this.showSomePokers(position, this.playersCards.playNumberCards)
+        position = this.showSomePokers(position, this.playersCards.spadeCards)
+        position = this.showSomePokers(position, this.playersCards.heartCards)
+        position = this.showSomePokers(position, this.playersCards.clubCards)
+        this.showSomePokers(position, this.playersCards.dianmondCards)
+    }
+
+    showSomePokers(position: number, cards: Poker[]): number {
+        for (let i = 0; i < cards.length; i++) {
+            let x = pokerPositions[position].x
+            let y = pokerPositions[position].y
+            let image = this.add.sprite(x, y, 'poker', getPokerPosition(cards[i])).setOrigin(0, 0).setInteractive()
+            image.on('pointerup', () => {
+            if (image.data === null || image.getData("status") === "down") {
+                image.setData("status", "up")
+                image.y -= 30
+
+                this.score += 5
+                this.showScore.setText("得分\n"+this.score)
+                } else {
+                image.setData("status", "down")
+                image.y += 30
+                }
+            })
+            this.pokerImages.push(image)
+            position += 1
+        }
+        return position
+    }
+
+    destoryAllShowMaster() {
+        for (let i = 0; i < this.showMasterImages.length; i++) {
+            this.showMasterImages[i].destroy()
+        }
+    }
+
+    waitShowMaster() {
+        console.log(dayjs().format())
+        let setIntervalID = setInterval(() => {
+            console.log(dayjs().format())
+        }, 3000)
+        setTimeout(() => {
+            console.log(dayjs().format())
+            clearInterval(setIntervalID)
+            this.destoryAllShowMaster()
+            this.sendMessageToServer(SHOW_MASTER_DONE, "")
+        }, 15500)
+    }
+
     sendMessageToServer(messageType: string, content: string) {
         this.websocket.send(JSON.stringify({
             "messageType": messageType, "content": content

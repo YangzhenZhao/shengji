@@ -4,9 +4,11 @@ type requestMessageType string
 type responseMessageType string
 
 const (
-	joinRoom      requestMessageType = "join_room"
-	setPlayerName requestMessageType = "set_player_name"
-	prepare       requestMessageType = "prepare"
+	joinRoom       requestMessageType = "join_room"
+	setPlayerName  requestMessageType = "set_player_name"
+	prepare        requestMessageType = "prepare"
+	showMasterDone requestMessageType = "show_master_done"
+	showMaster     requestMessageType = "show_master"
 
 	roomList         responseMessageType = "room_list"
 	joinRoomFail     responseMessageType = "join_room_fail"

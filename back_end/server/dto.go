@@ -12,3 +12,9 @@ func getPlayerMeta(msg string) (PlayerMeta, error) {
 	err := json.Unmarshal([]byte(msg), &meta)
 	return meta, err
 }
+
+type ShowMasterRequest struct {
+	Master        Poker `json:"master"`
+	IsSelfProtect bool  `json:"isSelfProtect"`
+	IsOppose      bool  `json:"isOppose"`
+}

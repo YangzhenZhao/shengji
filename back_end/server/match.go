@@ -22,19 +22,17 @@ func (m *Match) Run() {
 	isFristRound := true
 	banker := unknown
 	for {
-		resultChan := make(chan *GameResult)
 		game := &Game{
-			Round:           round,
-			FirstTeamRound:  firstTeamRound,
-			SecondTeamRound: secondTeamRound,
-			IsFristRound:    isFristRound,
-			Banker:          banker,
-			PlayerConns:     m.PlayerConns,
-			GameResultChan:  resultChan,
+			Round:              round,
+			FirstTeamRound:     firstTeamRound,
+			SecondTeamRound:    secondTeamRound,
+			IsFristRound:       isFristRound,
+			Banker:             banker,
+			PlayerConns:        m.PlayerConns,
+			ShowMasterDoneChan: make(chan bool),
 		}
 		m.sendGameToClients(game)
-		game.Run()
-		gameResult := <-resultChan
+		gameResult := game.Run()
 		if m.isFinish(game, gameResult) {
 			log.Printf("比赛结束!, 获胜方: %d\n", banker)
 			break

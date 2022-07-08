@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"math/rand"
 	"time"
@@ -39,8 +38,11 @@ type Game struct {
 	SecondTeamRound    string
 	IsFristRound       bool
 	Banker             banker
+	MasterColor        string
+	IsProtect          bool
 	PlayerConns        []*websocket.Conn
 	ShowMasterDoneChan chan bool
+	ShowMasterChan     chan *GameShowMasterRequest
 }
 
 func (g *Game) bankerTeam() teamType {
@@ -63,7 +65,20 @@ func (g *Game) sendDealPoker(playerIdx int, poker Poker) {
 	g.PlayerConns[playerIdx].WriteMessage(websocket.TextMessage, sendMessage)
 }
 
+func (g *Game) sendShowMasterPosition(playerIdx int, res *ShowMasterResponse) {
+	content, _ := json.Marshal(res)
+	roomListMessage := ResponseMessage{
+		MessageType: showMasterResult,
+		Content:     string(content),
+	}
+	sendMessage, _ := json.Marshal(roomListMessage)
+	g.PlayerConns[playerIdx].WriteMessage(websocket.TextMessage, sendMessage)
+}
+
 func (g *Game) Run() *GameResult {
+	defer close(g.ShowMasterChan)
+	defer close(g.ShowMasterDoneChan)
+
 	dealPokers := shufflePokers(cardsList)
 	for i := 0; i < 4; i++ {
 		tmpIdx := i
@@ -74,8 +89,22 @@ func (g *Game) Run() *GameResult {
 		}()
 	}
 	go func() {
-		// TODO: 添加 "亮主" 相关逻辑
-		fmt.Println("等待亮主!")
+		for gameReq := range g.ShowMasterChan {
+			log.Println("receive game req.........")
+			g.Banker = banker(gameReq.Position)
+			g.MasterColor = gameReq.Req.Color
+			if gameReq.Req.IsSelfProtect || gameReq.Req.IsOppose {
+				g.IsProtect = true
+			}
+			for i := 0; i < 4; i++ {
+				g.sendShowMasterPosition(i, &ShowMasterResponse{
+					Color:              gameReq.Req.Color,
+					IsProtect:          gameReq.Req.IsOppose || gameReq.Req.IsSelfProtect,
+					IsSelfShowMaster:   i == int(gameReq.Position)-1,
+					ShowMasterPosition: int32(getRelativePos(i, int(gameReq.Position)-1)),
+				})
+			}
+		}
 	}()
 	for i := 0; i < 4; i++ {
 		<-g.ShowMasterDoneChan
@@ -88,6 +117,10 @@ func (g *Game) Run() *GameResult {
 
 func (g *Game) receiveShowMasterDone() {
 	g.ShowMasterDoneChan <- true
+}
+
+func (g *Game) receiveShowMaster(req *GameShowMasterRequest) {
+	g.ShowMasterChan <- req
 }
 
 func shufflePokers(src []Poker) []Poker {

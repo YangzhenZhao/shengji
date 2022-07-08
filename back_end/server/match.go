@@ -30,6 +30,7 @@ func (m *Match) Run() {
 			Banker:             banker,
 			PlayerConns:        m.PlayerConns,
 			ShowMasterDoneChan: make(chan bool),
+			ShowMasterChan:     make(chan *GameShowMasterRequest),
 		}
 		m.sendGameToClients(game)
 		gameResult := game.Run()

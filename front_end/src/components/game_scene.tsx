@@ -13,7 +13,7 @@ import {
     Player, Poker, Cards, SPADE, HEART, CLUB, DIANMOND, getPokerPosition,
     SET_PLAYER_NAME_REQUEST, JOIN_ROOM_REQUEST, PREPARE_REQUEST, 
     ROOM_LIST_RESPONSE, EXISTS_PLAYERS_RESPONSE, DEAL_POKER, MATCH_BEGIN,
-    SHOW_MASTER_DONE, FULL_POKER_NUM
+    SHOW_MASTER_DONE, FULL_POKER_NUM, SHOW_MASTER_RESPONSE
 } from './dto'
 import dayjs from 'dayjs';
 
@@ -172,6 +172,8 @@ export class GameScene extends Phaser.Scene {
             for (let i = 0; i < 4; i++) {
                 this.prepareOkImg[i].destroy()
             }
+        } else if (messageType === SHOW_MASTER_RESPONSE) {
+            this.gameDetail.onShowMasterRes(JSON.parse(content))
         }
     }
 

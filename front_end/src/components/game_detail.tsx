@@ -1,6 +1,6 @@
 import { GameScene } from './game_scene';
 import { 
-    Poker, SPADE, HEART, CLUB, DIANMOND, SHOW_MASTER
+    Poker, SPADE, HEART, CLUB, DIANMOND, SHOW_MASTER, ShowMasterRequest, ShowMasterResponse,
 } from './dto'
 import { Game } from 'phaser';
 
@@ -17,6 +17,7 @@ export class GameDetail {
     public masterFlower: string
     public isMasterProtect: boolean
     public isSelfShowMaster: boolean
+    public showMasterPosition: number
     public blackJokerCnt: number
     public redJokerCnt: number
     public playNumCntMap: Map<string, number>
@@ -24,6 +25,7 @@ export class GameDetail {
         this.gameScene = gameScene
         this.playNumber = "2"
         this.masterFlower = ""
+        this.showMasterPosition = -1
         this.isMasterProtect = false
         this.isSelfShowMaster = false
         this.blackJokerCnt = 0
@@ -34,6 +36,13 @@ export class GameDetail {
             [CLUB, 0],
             [DIANMOND, 0]
         ])
+    }
+
+    public onShowMasterRes(res: ShowMasterResponse) {
+        this.masterFlower = res.color
+        this.isMasterProtect = res.isProtect
+        this.isSelfShowMaster = res.isSelfShowMaster
+        this.showMasterPosition = res.showMasterPosition
     }
 
     public onDealPoker(poker: Poker) {
@@ -84,6 +93,31 @@ export class GameDetail {
         return this.isSelfShowMaster && this.isMasterProtect
     }
 
+    public sendShowMaster(color: string) {
+        let req: ShowMasterRequest = {
+            color: color,
+            isSelfProtect: false,
+            isOppose: false,
+        }
+        if (this.masterFlower === "") {
+            req.isSelfProtect = this.isColorProtect(color)
+        } else {
+            req.isSelfProtect = true
+            req.isOppose = !this.isSelfShowMaster
+        }
+        this.gameScene.sendMessageToServer(SHOW_MASTER, JSON.stringify(req))
+    } 
+
+    isColorProtect(color: string): boolean {
+        if (color === "red" && this.redJokerCnt === 2 && this.blackJokerCnt > 0) {
+            return true
+        } 
+        if (color === "black" && this.blackJokerCnt === 2 && this.redJokerCnt > 0) {
+            return true
+        }
+        return this.playNumCntMap.get(color) === 2
+    }
+
     public showMaster() {
         let showCnt = 0
         console.log("hhhhhhhh")
@@ -96,7 +130,7 @@ export class GameDetail {
                 if (this.gameScene.gameDetail.blackJokerCnt < 2) {
                     master = "red"
                 }
-                this.gameScene.sendMessageToServer(SHOW_MASTER, master)
+                this.sendShowMaster(master)
             }.bind(this))
             showCnt += 1
         }
@@ -106,7 +140,7 @@ export class GameDetail {
             this.gameScene.showMasterImages.push(image)
             image.on("pointerdown", function (this: GameDetail) {
                 this.gameScene.destoryAllShowMaster()
-                this.gameScene.sendMessageToServer(SHOW_MASTER, HEART)
+                this.sendShowMaster(HEART)
             }.bind(this))
             showCnt += 1
         }
@@ -115,7 +149,7 @@ export class GameDetail {
             this.gameScene.showMasterImages.push(image)
             image.on("pointerdown", function (this: GameDetail) {
                 this.gameScene.destoryAllShowMaster()
-                this.gameScene.sendMessageToServer(SHOW_MASTER, SPADE)
+                this.sendShowMaster(SPADE)
             }.bind(this))
             showCnt += 1
         }
@@ -124,7 +158,7 @@ export class GameDetail {
             this.gameScene.showMasterImages.push(image)
             image.on("pointerdown", function (this: GameDetail) {
                 this.gameScene.destoryAllShowMaster()
-                this.gameScene.sendMessageToServer(SHOW_MASTER, CLUB)
+                this.sendShowMaster(CLUB)
             }.bind(this))
             showCnt += 1
         }
@@ -133,7 +167,7 @@ export class GameDetail {
             this.gameScene.showMasterImages.push(image)
             image.on("pointerdown", function (this: GameDetail) {
                 this.gameScene.destoryAllShowMaster()
-                this.gameScene.sendMessageToServer(SHOW_MASTER, DIANMOND)
+                this.sendShowMaster(DIANMOND)
             }.bind(this))
         }
        

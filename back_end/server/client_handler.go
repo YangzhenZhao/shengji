@@ -57,6 +57,18 @@ func (c *Client) playerMessageHandler() {
 			playerMessage.Content = fmt.Sprintf("%d", c.Room.Position)
 			message, _ := json.Marshal(playerMessage)
 			c.Room.HandlerChan <- message
+		case showMaster:
+			var req ShowMasterRequest
+			err := json.Unmarshal([]byte(playerMessage.Content), &req)
+			if err != nil {
+				log.Printf("unmarshal playerMeta err: %+v", err)
+				continue
+			}
+			fmt.Printf("%+v\n", req)
+			c.Game.receiveShowMaster(&GameShowMasterRequest{
+				Req:      req,
+				Position: c.Room.Position,
+			})
 		case showMasterDone:
 			c.Game.receiveShowMasterDone()
 		default:

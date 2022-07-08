@@ -16,6 +16,7 @@ const (
 	hasPlayerPrepare responseMessageType = "has_player_prepare"
 	matchBegin       responseMessageType = "match_begin"
 	dealPoker        responseMessageType = "deal_poker"
+	showMasterResult responseMessageType = "show_master_result"
 )
 
 type RequestMessage struct {

@@ -14,7 +14,19 @@ func getPlayerMeta(msg string) (PlayerMeta, error) {
 }
 
 type ShowMasterRequest struct {
-	Master        Poker `json:"master"`
-	IsSelfProtect bool  `json:"isSelfProtect"`
-	IsOppose      bool  `json:"isOppose"`
+	Color         string `json:"color"`
+	IsSelfProtect bool   `json:"isSelfProtect"`
+	IsOppose      bool   `json:"isOppose"`
+}
+
+type GameShowMasterRequest struct {
+	Req      ShowMasterRequest
+	Position int32
+}
+
+type ShowMasterResponse struct {
+	Color              string `json:"color"`
+	IsProtect          bool   `json:"isProtect"`
+	IsSelfShowMaster   bool   `json:"isSelfShowMaster"`
+	ShowMasterPosition int32  `json:"showMasterPosition"`
 }

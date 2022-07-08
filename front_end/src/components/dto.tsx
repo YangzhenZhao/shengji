@@ -6,6 +6,7 @@ export const SHOW_MASTER_DONE = "show_master_done"
 
 export const ROOM_LIST_RESPONSE = "room_list"
 export const EXISTS_PLAYERS_RESPONSE = "exists_players"
+export const SHOW_MASTER_RESPONSE = "show_master_result"
 export const DEAL_POKER = "deal_poker"
 export const MATCH_BEGIN = "match_begin"
 
@@ -29,6 +30,19 @@ export interface Cards {
     jokers: Poker[]
     playNumberCards: Poker[]
     cardNum: number
+}
+
+export interface ShowMasterRequest {
+    color: string
+    isSelfProtect: boolean,
+    isOppose: boolean,
+}
+
+export interface ShowMasterResponse {
+    color: string,
+    isProtect: boolean,
+    isSelfShowMaster: boolean
+    showMasterPosition: number
 }
 
 const positionMap = new Map([

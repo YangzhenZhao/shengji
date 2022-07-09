@@ -9,6 +9,7 @@ export const EXISTS_PLAYERS_RESPONSE = "exists_players"
 export const SHOW_MASTER_RESPONSE = "show_master_result"
 export const DEAL_POKER = "deal_poker"
 export const MATCH_BEGIN = "match_begin"
+export const REVEIVE_HOLE_CARDS = "deal_hole_cards"
 
 export const FULL_POKER_NUM = 25
 
@@ -65,6 +66,13 @@ export const SPADE = "spade"
 export const HEART = "heart"
 export const CLUB = "club"
 export const DIANMOND = "dianmond"
+
+export const showColorIdxMap = new Map([
+    [HEART, 0],
+    [SPADE, 1],
+    [CLUB, 2],
+    [DIANMOND, 3],
+])
 
 export const getPokerPosition = (poker: Poker): number => {
     if (poker.color === 'red') {

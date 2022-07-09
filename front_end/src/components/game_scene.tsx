@@ -6,6 +6,9 @@ import beginGame from "../assets/btn/begin.png"
 import prepareOk from "../assets/btn/prepare_ok.png"
 import flowerImages from "../assets/flower_color.jpeg"
 import jokerImage from "../assets/joker.webp"
+import zhuangImage from "../assets/zhuang.jpg"
+import kouGreyImage from "../assets/kou_hei.gif"
+import kouLightImage from "../assets/kou_light.gif"
 import { nanoid } from 'nanoid'
 import { Match } from './match';
 import { GameDetail } from './game_detail';
@@ -13,7 +16,7 @@ import {
     Player, Poker, Cards, SPADE, HEART, CLUB, DIANMOND, getPokerPosition,
     SET_PLAYER_NAME_REQUEST, JOIN_ROOM_REQUEST, PREPARE_REQUEST, 
     ROOM_LIST_RESPONSE, EXISTS_PLAYERS_RESPONSE, DEAL_POKER, MATCH_BEGIN,
-    SHOW_MASTER_DONE, FULL_POKER_NUM, SHOW_MASTER_RESPONSE
+    SHOW_MASTER_DONE, FULL_POKER_NUM, SHOW_MASTER_RESPONSE, showColorIdxMap, REVEIVE_HOLE_CARDS,
 } from './dto'
 import dayjs from 'dayjs';
 
@@ -26,6 +29,13 @@ const playerTextPositions = [
     {x: screenWidth * 0.6, y: 30},
     {x: 5, y: screenHeight / 2.4},
     {x: screenWidth - 108, y: screenHeight / 2.4}
+]
+
+const zhuangPositions = [
+    {x: 110, y: screenHeight - 45},
+    {x: screenWidth * 0.66, y: 21},
+    {x: 65, y: screenHeight / 2.45},
+    {x: screenWidth - 48, y: screenHeight / 2.45}
 ]
 
 const prepareImagePositions = [
@@ -50,12 +60,31 @@ for (let i = 0; i < 25; i++) {
     })
     x += 26;
 }
+let buckleCardPositions = []
+x = 300
+for (let i = 0; i < 17; i++) {
+    buckleCardPositions.push({
+        x: x,
+        y: screenHeight - 280,
+    })
+    x += 30;
+}
+x = 300
+for (let i = 0; i < 16; i++) {
+    buckleCardPositions.push({
+        x: x,
+        y: screenHeight - 160,
+    })
+    x += 30;
+}
 
 export class GameScene extends Phaser.Scene {
     public playerName
     public websocket: WebSocket | null
     public players: Player[]
     public prepareBtn: Phaser.GameObjects.Image
+    public zhuangColorImg: Phaser.GameObjects.Image
+    public kouImg: Phaser.GameObjects.Image
     public prepareOkImg: Phaser.GameObjects.Image[]
     public playersCards: Cards
     public match: Match
@@ -83,6 +112,7 @@ export class GameScene extends Phaser.Scene {
         this.gameDetail = new GameDetail(this)
         this.pokerImages = []
         this.showMasterImages = []
+        this.selectBuckleNum = 0
     }
 
     preload () {
@@ -91,6 +121,9 @@ export class GameScene extends Phaser.Scene {
         this.load.image("beginGame", beginGame)
         this.load.image("prepareOk", prepareOk)
         this.load.image("jokerImage", jokerImage)
+        this.load.image("zhuangImage", zhuangImage)
+        this.load.image("kouGreyImage", kouGreyImage)
+        this.load.image("kouLightImage", kouLightImage)
         this.load.spritesheet('poker', pokerImage, {
             frameWidth: 90,
             frameHeight: 120
@@ -174,10 +207,31 @@ export class GameScene extends Phaser.Scene {
             }
         } else if (messageType === SHOW_MASTER_RESPONSE) {
             this.gameDetail.onShowMasterRes(JSON.parse(content))
+            this.showZhuangColor()
+        } else if (messageType === REVEIVE_HOLE_CARDS) {
+            this.showBuckleCards(JSON.parse(content))
         }
     }
 
-    dealPoker(poker: Poker) {
+    showZhuangColor() {
+        if (this.zhuangColorImg) {
+            this.zhuangColorImg.destroy()
+        }
+        let isSelfTeamShow = this.gameDetail.isSelfTeamShowMaster()
+        let positionX = screenWidth - 122
+        let positionY = 10
+        if (!isSelfTeamShow) {
+            positionY = 30
+        }
+        if (this.gameDetail.isShowJokerMaster()) {
+            this.zhuangColorImg = this.add.image(positionX, positionY, 'jokerImage').setOrigin(0, 0).setDisplaySize(20, 20).setInteractive()
+        } else {
+            let showColorIdx = showColorIdxMap.get(this.gameDetail.masterFlower)!
+            this.zhuangColorImg = this.add.sprite(positionX, positionY, 'flowerImages', showColorIdx).setOrigin(0, 0).setDisplaySize(20, 20).setInteractive()
+        }
+    }
+
+    appendPoker(poker: Poker) {
         if (poker.number === "joker") {
             this.playersCards.jokers.push(poker)
         } else if (poker.number === this.gameDetail.playNumber) {
@@ -195,6 +249,10 @@ export class GameScene extends Phaser.Scene {
         this.playersCards.cardNum += 1
 
         this.gameDetail.onDealPoker(poker)
+    }
+
+    dealPoker(poker: Poker) {
+        this.appendPoker(poker)
         this.showPokers()
         this.gameDetail.showMaster()
 
@@ -203,17 +261,65 @@ export class GameScene extends Phaser.Scene {
         }
     }
 
-    showPokers() {
+    clearPokers() {
         for (let i = 0; i < this.pokerImages.length; i++) {
             this.pokerImages[i].destroy()
         }
         this.pokerImages = []
+    }
+
+    showPokers() {
+        this.clearPokers()
         let position = this.showSomePokers(0, this.playersCards.jokers)
         position = this.showSomePokers(position, this.playersCards.playNumberCards)
         position = this.showSomePokers(position, this.playersCards.spadeCards)
         position = this.showSomePokers(position, this.playersCards.heartCards)
         position = this.showSomePokers(position, this.playersCards.clubCards)
         this.showSomePokers(position, this.playersCards.dianmondCards)
+    }
+
+    showBuckleCards(holeCards: Poker[]) {
+        this.clearPokers()
+        this.kouImg = this.add.image(screenWidth * 0.48, screenHeight - 380, 'kouGreyImage').setOrigin(0, 0).setDisplaySize(80, 40).setInteractive()
+        for (let i = 0; i < 8; i++) {
+            this.appendPoker(holeCards[i])
+        }
+        let position = this.showSomeBuckleCards(0, this.playersCards.jokers)
+        position = this.showSomeBuckleCards(position, this.playersCards.playNumberCards)
+        position = this.showSomeBuckleCards(position, this.playersCards.spadeCards)
+        position = this.showSomeBuckleCards(position, this.playersCards.heartCards)
+        position = this.showSomeBuckleCards(position, this.playersCards.clubCards)
+        this.showSomeBuckleCards(position, this.playersCards.dianmondCards)
+    }
+
+    showSomeBuckleCards(position: number, cards: Poker[]): number {
+        for (let i = 0; i < cards.length; i++) {
+            let x = buckleCardPositions[position].x
+            let y = buckleCardPositions[position].y
+            let image = this.add.sprite(x, y, 'poker', getPokerPosition(cards[i])).setOrigin(0, 0).setInteractive()
+            image.on('pointerup', () => {
+                if (image.data === null || image.getData("status") === "down") {
+                    image.setData("status", "up")
+                    image.y -= 30
+                    this.selectBuckleNum += 1
+                    if (this.selectBuckleNum === 8) {
+                        this.kouImg.destroy()
+                        this.kouImg = this.add.image(screenWidth * 0.48, screenHeight - 380, 'kouLightImage').setOrigin(0, 0).setDisplaySize(80, 40).setInteractive()
+                    }
+                } else {
+                    image.setData("status", "down")
+                    image.y += 30
+                    this.selectBuckleNum -= 1
+                    if (this.selectBuckleNum < 8) {
+                        this.kouImg.destroy()
+                        this.kouImg = this.add.image(screenWidth * 0.48, screenHeight - 380, 'kouGreyImage').setOrigin(0, 0).setDisplaySize(80, 40).setInteractive()
+                    }
+                }
+            })
+            this.pokerImages.push(image)
+            position += 1
+        }
+        return position
     }
 
     showSomePokers(position: number, cards: Poker[]): number {
@@ -255,7 +361,16 @@ export class GameScene extends Phaser.Scene {
             clearInterval(setIntervalID)
             this.destoryAllShowMaster()
             this.sendMessageToServer(SHOW_MASTER_DONE, "")
+            this.showZhuang()
         }, 15500)
+    }
+
+    showZhuang() {
+        let pos = this.gameDetail.showMasterPosition
+        if (pos === -1) {
+            return
+        }
+        this.add.image(zhuangPositions[pos].x, zhuangPositions[pos].y, 'zhuangImage').setOrigin(0, 0).setDisplaySize(30, 20).setInteractive()
     }
 
     sendMessageToServer(messageType: string, content: string) {

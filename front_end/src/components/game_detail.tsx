@@ -39,6 +39,7 @@ export class GameDetail {
     }
 
     public onShowMasterRes(res: ShowMasterResponse) {
+        console.log(res)
         this.masterFlower = res.color
         this.isMasterProtect = res.isProtect
         this.isSelfShowMaster = res.isSelfShowMaster
@@ -89,6 +90,13 @@ export class GameDetail {
         return jokerCnt > 0 && this.playNumCntMap.get(color)! === 2
     }
 
+    public isSelfTeamShowMaster(): boolean {
+        if (this.showMasterPosition <= 1) {
+            return true
+        }
+        return false
+    }
+
     isSelfProtect(): boolean {
         return this.isSelfShowMaster && this.isMasterProtect
     }
@@ -116,6 +124,10 @@ export class GameDetail {
             return true
         }
         return this.playNumCntMap.get(color) === 2
+    }
+
+    public isShowJokerMaster(): boolean {
+        return this.masterFlower === "red" || this.masterFlower === "black"
     }
 
     public showMaster() {

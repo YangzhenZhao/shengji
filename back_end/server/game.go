@@ -65,6 +65,16 @@ func (g *Game) sendDealPoker(playerIdx int, poker Poker) {
 	g.PlayerConns[playerIdx].WriteMessage(websocket.TextMessage, sendMessage)
 }
 
+func (g *Game) sendHoleCards(playerIdx int, cards []Poker) {
+	content, _ := json.Marshal(cards)
+	roomListMessage := ResponseMessage{
+		MessageType: dealHoleCards,
+		Content:     string(content),
+	}
+	sendMessage, _ := json.Marshal(roomListMessage)
+	g.PlayerConns[playerIdx].WriteMessage(websocket.TextMessage, sendMessage)
+}
+
 func (g *Game) sendShowMasterPosition(playerIdx int, res *ShowMasterResponse) {
 	content, _ := json.Marshal(res)
 	roomListMessage := ResponseMessage{
@@ -110,6 +120,7 @@ func (g *Game) Run() *GameResult {
 		<-g.ShowMasterDoneChan
 	}
 	log.Println("亮主完成")
+	g.sendHoleCards(int(g.Banker)-1, dealPokers[100:108])
 	stuckChan := make(chan bool)
 	stuckChan <- false
 	return &GameResult{}

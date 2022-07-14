@@ -31,6 +31,13 @@ func (m *Match) Run() {
 			PlayerConns:        m.PlayerConns,
 			ShowMasterDoneChan: make(chan bool),
 			ShowMasterChan:     make(chan *GameShowMasterRequest),
+			BottomCardsChan:    make(chan []*Poker),
+			PlayCardsChan: []chan []*Poker{
+				make(chan []*Poker),
+				make(chan []*Poker),
+				make(chan []*Poker),
+				make(chan []*Poker),
+			},
 		}
 		m.sendGameToClients(game)
 		gameResult := game.Run()

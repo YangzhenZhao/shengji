@@ -61,6 +61,25 @@ export class GameDetail {
         this.playNumCntMap.set(poker.color, this.playNumCntMap.get(poker.color)! + 1)
     }
 
+    public validatePlayCards(): boolean {
+        return false
+    }
+
+    public onRemovePoker(poker: Poker) {
+        if (poker.color === "red") {
+            this.redJokerCnt -= 1
+            return
+        }
+        if (poker.color === "black") {
+            this.blackJokerCnt -= 1
+            return
+        }
+        if (poker.number !== this.playNumber) {
+            return
+        }
+        this.playNumCntMap.set(poker.color, this.playNumCntMap.get(poker.color)! - 1)
+    }
+
     public isCanShowJoker() {
         if (this.isSelfProtect()) {
             return false

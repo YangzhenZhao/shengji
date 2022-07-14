@@ -9,6 +9,8 @@ const (
 	prepare        requestMessageType = "prepare"
 	showMasterDone requestMessageType = "show_master_done"
 	showMaster     requestMessageType = "show_master"
+	kouCards       requestMessageType = "kou_cards"
+	playCards      requestMessageType = "play_cards"
 
 	roomList         responseMessageType = "room_list"
 	joinRoomFail     responseMessageType = "join_room_fail"
@@ -18,6 +20,7 @@ const (
 	dealPoker        responseMessageType = "deal_poker"
 	showMasterResult responseMessageType = "show_master_result"
 	dealHoleCards    responseMessageType = "deal_hole_cards"
+	playTurn         responseMessageType = "play_trun"
 )
 
 type RequestMessage struct {

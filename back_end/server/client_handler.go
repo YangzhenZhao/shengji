@@ -71,6 +71,22 @@ func (c *Client) playerMessageHandler() {
 			})
 		case showMasterDone:
 			c.Game.receiveShowMasterDone()
+		case kouCards:
+			var kouCards []*Poker
+			err := json.Unmarshal([]byte(playerMessage.Content), &kouCards)
+			if err != nil {
+				log.Printf("unmarshal kouCards err: %+v", err)
+				continue
+			}
+			c.Game.receiveBottomCards(kouCards)
+		case playCards:
+			var playCards []*Poker
+			err := json.Unmarshal([]byte(playerMessage.Content), &playCards)
+			if err != nil {
+				log.Printf("unmarshal playCards err: %+v", err)
+				continue
+			}
+			c.Game.receivePlayCards(int(c.Room.Position)-1, playCards)
 		default:
 			log.Println("用户信息格式错误!")
 		}

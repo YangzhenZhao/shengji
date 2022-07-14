@@ -9,6 +9,8 @@ import jokerImage from "../assets/joker.webp"
 import zhuangImage from "../assets/zhuang.jpg"
 import kouGreyImage from "../assets/kou_hei.gif"
 import kouLightImage from "../assets/kou_light.gif"
+import playCardsGreyImg from "../assets/chu_pai_grey.gif"
+import playCardsGreenImg from "../assets/chu_pai_green.gif"
 import { nanoid } from 'nanoid'
 import { Match } from './match';
 import { GameDetail } from './game_detail';
@@ -17,6 +19,7 @@ import {
     SET_PLAYER_NAME_REQUEST, JOIN_ROOM_REQUEST, PREPARE_REQUEST, 
     ROOM_LIST_RESPONSE, EXISTS_PLAYERS_RESPONSE, DEAL_POKER, MATCH_BEGIN,
     SHOW_MASTER_DONE, FULL_POKER_NUM, SHOW_MASTER_RESPONSE, showColorIdxMap, REVEIVE_HOLE_CARDS,
+    KOU_CARDS, PLAY_TURN, PLAY_CARDS,
 } from './dto'
 import dayjs from 'dayjs';
 
@@ -77,6 +80,8 @@ for (let i = 0; i < 16; i++) {
     })
     x += 30;
 }
+const playCardsImgX = screenWidth * 0.5
+const playCardsImgY = screenHeight - 220
 
 export class GameScene extends Phaser.Scene {
     public playerName
@@ -85,12 +90,15 @@ export class GameScene extends Phaser.Scene {
     public prepareBtn: Phaser.GameObjects.Image
     public zhuangColorImg: Phaser.GameObjects.Image
     public kouImg: Phaser.GameObjects.Image
+    public playCardsImg: Phaser.GameObjects.Image
     public prepareOkImg: Phaser.GameObjects.Image[]
     public playersCards: Cards
     public match: Match
     public gameDetail: GameDetail
     public pokerImages: Phaser.GameObjects.Image[]
     public showMasterImages: Phaser.GameObjects.Image[]
+    public buckleCards: Poker[]
+    public playCards: Poker[]
     constructor(playerName: string) {
         super("GameScene")
         this.playerName = playerName
@@ -113,6 +121,8 @@ export class GameScene extends Phaser.Scene {
         this.pokerImages = []
         this.showMasterImages = []
         this.selectBuckleNum = 0
+        this.buckleCards = []
+        this.playCards = []
     }
 
     preload () {
@@ -124,6 +134,8 @@ export class GameScene extends Phaser.Scene {
         this.load.image("zhuangImage", zhuangImage)
         this.load.image("kouGreyImage", kouGreyImage)
         this.load.image("kouLightImage", kouLightImage)
+        this.load.image("playCardsGreyImg", playCardsGreyImg)
+        this.load.image("playCardsGreenImg", playCardsGreenImg)
         this.load.spritesheet('poker', pokerImage, {
             frameWidth: 90,
             frameHeight: 120
@@ -159,7 +171,6 @@ export class GameScene extends Phaser.Scene {
 
     onopen() {
         console.log("连接成功")
-        
 
         this.sendMessageToServer(SET_PLAYER_NAME_REQUEST, JSON.stringify({
             UUID: nanoid(),
@@ -210,6 +221,17 @@ export class GameScene extends Phaser.Scene {
             this.showZhuangColor()
         } else if (messageType === REVEIVE_HOLE_CARDS) {
             this.showBuckleCards(JSON.parse(content))
+        } else if (messageType === PLAY_TURN) {
+            this.playCardsImg = this.add.image(playCardsImgX, playCardsImgY, 'playCardsGreenImg').setOrigin(0, 0).setDisplaySize(96, 40).setInteractive()
+            // console.log(this.playCardsImg.texture.key, "hhhhhhhhhhhhhhh")
+            this.playCardsImg.on('pointerup', () => {
+                this.sendMessageToServer(PLAY_CARDS, JSON.stringify(this.playCards))
+                for (let i = 0; i < this.playCards.length; i++) {
+                    this.removePoker(this.playCards[i])
+                }
+                this.showPokers()
+                this.playCardsImg.destroy()
+            })
         }
     }
 
@@ -251,6 +273,56 @@ export class GameScene extends Phaser.Scene {
         this.gameDetail.onDealPoker(poker)
     }
 
+    removePoker(poker: Poker) {
+        if (poker.number === "joker") {
+            for (let i = 0; i < this.playersCards.jokers.length; i++) {
+                if (poker === this.playersCards.jokers[i]) {
+                    this.playersCards.jokers.splice(i, 1)
+                    break
+                }
+            }
+        } else if (poker.number === this.gameDetail.playNumber) {
+            for (let i = 0; i < this.playersCards.playNumberCards.length; i++) {
+                if (poker === this.playersCards.playNumberCards[i]) {
+                    this.playersCards.playNumberCards.splice(i, 1)
+                    break
+                }
+            }
+        } else if (poker.color === SPADE) {
+            for (let i = 0; i < this.playersCards.spadeCards.length; i++) {
+                if (poker === this.playersCards.spadeCards[i]) {
+                    this.playersCards.spadeCards.splice(i, 1)
+                    break
+                }
+            }
+        } else if (poker.color === HEART) {
+            for (let i = 0; i < this.playersCards.heartCards.length; i++) {
+                if (poker === this.playersCards.heartCards[i]) {
+                    this.playersCards.heartCards.splice(i, 1)
+                    break
+                }
+            }
+        } else if (poker.color === CLUB) {
+            for (let i = 0; i < this.playersCards.clubCards.length; i++) {
+                if (poker === this.playersCards.clubCards[i]) {
+                    this.playersCards.clubCards.splice(i, 1)
+                    break
+                }
+            }
+        } else {
+            for (let i = 0; i < this.playersCards.dianmondCards.length; i++) {
+                if (poker === this.playersCards.dianmondCards[i]) {
+                    this.playersCards.dianmondCards.splice(i, 1)
+                    break
+                }
+            }
+        }
+
+        this.playersCards.cardNum -= 1
+
+        this.gameDetail.onRemovePoker(poker)
+    }
+
     dealPoker(poker: Poker) {
         this.appendPoker(poker)
         this.showPokers()
@@ -270,6 +342,7 @@ export class GameScene extends Phaser.Scene {
 
     showPokers() {
         this.clearPokers()
+        this.playCards = []
         let position = this.showSomePokers(0, this.playersCards.jokers)
         position = this.showSomePokers(position, this.playersCards.playNumberCards)
         position = this.showSomePokers(position, this.playersCards.spadeCards)
@@ -280,7 +353,7 @@ export class GameScene extends Phaser.Scene {
 
     showBuckleCards(holeCards: Poker[]) {
         this.clearPokers()
-        this.kouImg = this.add.image(screenWidth * 0.48, screenHeight - 380, 'kouGreyImage').setOrigin(0, 0).setDisplaySize(80, 40).setInteractive()
+        this.showKouImg(false)
         for (let i = 0; i < 8; i++) {
             this.appendPoker(holeCards[i])
         }
@@ -292,27 +365,51 @@ export class GameScene extends Phaser.Scene {
         this.showSomeBuckleCards(position, this.playersCards.dianmondCards)
     }
 
+    showKouImg(isLight: boolean) {
+        if (this.kouImg) {
+            this.kouImg.destroy()
+        }
+        let imgName = "kouGreyImage"
+        if (isLight) {
+            imgName = "kouLightImage"
+        }
+        this.kouImg = this.add.image(screenWidth * 0.48, screenHeight - 380, imgName).setOrigin(0, 0).setDisplaySize(90, 40).setInteractive()
+        if (isLight) {
+            this.kouImg.on('pointerup', () => {
+                this.kouImg.destroy()
+                for (let i = 0; i < 8; i++) {
+                    this.removePoker(this.buckleCards[i])
+                }
+                console.log(this.buckleCards)
+                this.showPokers()
+                this.sendMessageToServer(KOU_CARDS, JSON.stringify(this.buckleCards))
+                this.buckleCards = []
+            })
+        }
+    }
+
     showSomeBuckleCards(position: number, cards: Poker[]): number {
         for (let i = 0; i < cards.length; i++) {
             let x = buckleCardPositions[position].x
             let y = buckleCardPositions[position].y
             let image = this.add.sprite(x, y, 'poker', getPokerPosition(cards[i])).setOrigin(0, 0).setInteractive()
+            let tmpCard = cards[i]
             image.on('pointerup', () => {
                 if (image.data === null || image.getData("status") === "down") {
                     image.setData("status", "up")
                     image.y -= 30
                     this.selectBuckleNum += 1
+                    this.buckleCards.push(tmpCard)
                     if (this.selectBuckleNum === 8) {
-                        this.kouImg.destroy()
-                        this.kouImg = this.add.image(screenWidth * 0.48, screenHeight - 380, 'kouLightImage').setOrigin(0, 0).setDisplaySize(80, 40).setInteractive()
+                        this.showKouImg(true)
                     }
                 } else {
                     image.setData("status", "down")
                     image.y += 30
                     this.selectBuckleNum -= 1
+                    this.removeBuckleCard(tmpCard)
                     if (this.selectBuckleNum < 8) {
-                        this.kouImg.destroy()
-                        this.kouImg = this.add.image(screenWidth * 0.48, screenHeight - 380, 'kouGreyImage').setOrigin(0, 0).setDisplaySize(80, 40).setInteractive()
+                        this.showKouImg(false)
                     }
                 }
             })
@@ -322,27 +419,47 @@ export class GameScene extends Phaser.Scene {
         return position
     }
 
+    removeBuckleCard(poker: Poker) {
+        for (let i = 0; i < this.buckleCards.length; i++) {
+            if (poker === this.buckleCards[i]) {
+                this.buckleCards.splice(i, 1)
+                break
+            }
+        }
+    }
+
     showSomePokers(position: number, cards: Poker[]): number {
         for (let i = 0; i < cards.length; i++) {
             let x = pokerPositions[position].x
             let y = pokerPositions[position].y
             let image = this.add.sprite(x, y, 'poker', getPokerPosition(cards[i])).setOrigin(0, 0).setInteractive()
             image.on('pointerup', () => {
-            if (image.data === null || image.getData("status") === "down") {
-                image.setData("status", "up")
-                image.y -= 30
-
-                this.score += 5
-                this.showScore.setText("得分\n"+this.score)
+                if (image.data === null || image.getData("status") === "down") {
+                    image.setData("status", "up")
+                    image.y -= 30
+                    this.playCards.push(cards[i])
+                    this.score += 5
+                    this.showScore.setText("得分\n"+this.score)
                 } else {
-                image.setData("status", "down")
-                image.y += 30
+                    image.setData("status", "down")
+                    image.y += 30
+                    this.removePlayCard(cards[i])
                 }
+                console.log(this.playCards)
             })
             this.pokerImages.push(image)
             position += 1
         }
         return position
+    }
+
+    removePlayCard(poker: Poker) {
+        for (let i = 0; i < this.playCards.length; i++) {
+            if (this.playCards[i] === poker) {
+                this.playCards.splice(i, 1)
+                return
+            }
+        }
     }
 
     destoryAllShowMaster() {

@@ -43,6 +43,16 @@ type Game struct {
 	PlayerConns        []*websocket.Conn
 	ShowMasterDoneChan chan bool
 	ShowMasterChan     chan *GameShowMasterRequest
+	BottomCards        []*Poker
+	BottomCardsChan    chan []*Poker
+	PlayCardsChan      []chan []*Poker
+}
+
+var turnNextMap = map[int]int{
+	1: 4,
+	4: 2,
+	2: 3,
+	3: 1,
 }
 
 func (g *Game) bankerTeam() teamType {
@@ -70,6 +80,15 @@ func (g *Game) sendHoleCards(playerIdx int, cards []Poker) {
 	roomListMessage := ResponseMessage{
 		MessageType: dealHoleCards,
 		Content:     string(content),
+	}
+	sendMessage, _ := json.Marshal(roomListMessage)
+	g.PlayerConns[playerIdx].WriteMessage(websocket.TextMessage, sendMessage)
+}
+
+func (g *Game) sendPlayTrun(playerIdx int) {
+	roomListMessage := ResponseMessage{
+		MessageType: playTurn,
+		Content:     "",
 	}
 	sendMessage, _ := json.Marshal(roomListMessage)
 	g.PlayerConns[playerIdx].WriteMessage(websocket.TextMessage, sendMessage)
@@ -121,6 +140,21 @@ func (g *Game) Run() *GameResult {
 	}
 	log.Println("亮主完成")
 	g.sendHoleCards(int(g.Banker)-1, dealPokers[100:108])
+	g.BottomCards = <-g.BottomCardsChan
+	for i := 0; i < 8; i++ {
+		log.Println(g.BottomCards[i])
+	}
+	turnPosition := int(g.Banker - 1)
+	for {
+		for i := 0; i < 4; i++ {
+			g.sendPlayTrun(turnPosition)
+			cards := <-g.PlayCardsChan[turnPosition]
+			for j := 0; j < len(cards); j++ {
+				log.Printf("%+v\n", cards[j])
+			}
+			turnPosition = turnNextMap[turnPosition+1] - 1
+		}
+	}
 	stuckChan := make(chan bool)
 	stuckChan <- false
 	return &GameResult{}
@@ -128,6 +162,14 @@ func (g *Game) Run() *GameResult {
 
 func (g *Game) receiveShowMasterDone() {
 	g.ShowMasterDoneChan <- true
+}
+
+func (g *Game) receiveBottomCards(cards []*Poker) {
+	g.BottomCardsChan <- cards
+}
+
+func (g *Game) receivePlayCards(idx int, cards []*Poker) {
+	g.PlayCardsChan[idx] <- cards
 }
 
 func (g *Game) receiveShowMaster(req *GameShowMasterRequest) {

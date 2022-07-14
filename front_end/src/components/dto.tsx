@@ -3,6 +3,8 @@ export const JOIN_ROOM_REQUEST = "join_room"
 export const PREPARE_REQUEST = "prepare"
 export const SHOW_MASTER = "show_master"
 export const SHOW_MASTER_DONE = "show_master_done"
+export const KOU_CARDS = "kou_cards"
+export const PLAY_CARDS = "play_cards"
 
 export const ROOM_LIST_RESPONSE = "room_list"
 export const EXISTS_PLAYERS_RESPONSE = "exists_players"
@@ -10,6 +12,7 @@ export const SHOW_MASTER_RESPONSE = "show_master_result"
 export const DEAL_POKER = "deal_poker"
 export const MATCH_BEGIN = "match_begin"
 export const REVEIVE_HOLE_CARDS = "deal_hole_cards"
+export const PLAY_TURN = "play_trun"
 
 export const FULL_POKER_NUM = 25
 

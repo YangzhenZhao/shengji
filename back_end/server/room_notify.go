@@ -33,8 +33,8 @@ var TeamMateMap = map[int]int{
 }
 var OpponentMap = map[int][2]int{
 	0: {2, 3},
-	1: {2, 3},
-	2: {0, 1},
+	1: {3, 2},
+	2: {1, 0},
 	3: {0, 1},
 }
 

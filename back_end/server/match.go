@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 
+	"github.com/YangzhenZhao/shengji/back_end/server/dto"
 	"github.com/gorilla/websocket"
 )
 
@@ -30,13 +31,13 @@ func (m *Match) Run() {
 			Banker:             banker,
 			PlayerConns:        m.PlayerConns,
 			ShowMasterDoneChan: make(chan bool),
-			ShowMasterChan:     make(chan *GameShowMasterRequest),
-			BottomCardsChan:    make(chan []*Poker),
-			PlayCardsChan: []chan []*Poker{
-				make(chan []*Poker),
-				make(chan []*Poker),
-				make(chan []*Poker),
-				make(chan []*Poker),
+			ShowMasterChan:     make(chan *dto.GameShowMasterRequest),
+			BottomCardsChan:    make(chan []*dto.Poker),
+			PlayCardsChan: []chan []*dto.Poker{
+				make(chan []*dto.Poker),
+				make(chan []*dto.Poker),
+				make(chan []*dto.Poker),
+				make(chan []*dto.Poker),
 			},
 		}
 		m.sendGameToClients(game)

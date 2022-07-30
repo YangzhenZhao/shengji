@@ -19,7 +19,7 @@ import {
     SET_PLAYER_NAME_REQUEST, JOIN_ROOM_REQUEST, PREPARE_REQUEST, 
     ROOM_LIST_RESPONSE, EXISTS_PLAYERS_RESPONSE, DEAL_POKER, MATCH_BEGIN,
     SHOW_MASTER_DONE, FULL_POKER_NUM, SHOW_MASTER_RESPONSE, showColorIdxMap, REVEIVE_HOLE_CARDS,
-    KOU_CARDS, PLAY_TURN, PLAY_CARDS,
+    KOU_CARDS, PLAY_TURN, PLAY_CARDS, SHOW_PLAY_CARDS, ShowPlayCardsResponse,
 } from './dto'
 import dayjs from 'dayjs';
 
@@ -63,6 +63,26 @@ for (let i = 0; i < 25; i++) {
     })
     x += 26;
 }
+let showPokerBeginPositions = [
+    {x: 300, y: screenHeight - 320},
+    {x: screenWidth * 0.27, y: 48},
+    {x: 72, y: screenHeight / 2.65},
+    {x: screenWidth - 300, y: screenHeight / 2.65}
+]
+let showPokerPositions = [
+    [],
+    [],
+    [],
+    [],
+]
+for (let i = 0; i < 25; i++) {
+    for (let j = 0; j < 4; j++) {
+        showPokerPositions[j].push({
+            x: showPokerBeginPositions[j].x + 26 * i,
+            y: showPokerBeginPositions[j].y
+        })
+    }
+}
 let buckleCardPositions = []
 x = 300
 for (let i = 0; i < 17; i++) {
@@ -96,6 +116,7 @@ export class GameScene extends Phaser.Scene {
     public match: Match
     public gameDetail: GameDetail
     public pokerImages: Phaser.GameObjects.Image[]
+    public showPlayCardsImgs: Phaser.GameObjects.Image[][]
     public showMasterImages: Phaser.GameObjects.Image[]
     public buckleCards: Poker[]
     public playCards: Poker[]
@@ -123,6 +144,7 @@ export class GameScene extends Phaser.Scene {
         this.selectBuckleNum = 0
         this.buckleCards = []
         this.playCards = []
+        this.showPlayCardsImgs = [[], [], [], []]
     }
 
     preload () {
@@ -224,14 +246,31 @@ export class GameScene extends Phaser.Scene {
         } else if (messageType === PLAY_TURN) {
             this.playCardsImg = this.add.image(playCardsImgX, playCardsImgY, 'playCardsGreenImg').setOrigin(0, 0).setDisplaySize(96, 40).setInteractive()
             // console.log(this.playCardsImg.texture.key, "hhhhhhhhhhhhhhh")
-            this.playCardsImg.on('pointerup', () => {
+            this.playCardsImg.on('pointerup', function () {
                 this.sendMessageToServer(PLAY_CARDS, JSON.stringify(this.playCards))
                 for (let i = 0; i < this.playCards.length; i++) {
                     this.removePoker(this.playCards[i])
                 }
+                this.showPlayCards(0, this.playCards)
                 this.showPokers()
                 this.playCardsImg.destroy()
-            })
+            }.bind(this))
+        } else if (messageType === SHOW_PLAY_CARDS) {
+            let showPlayCardsResponse: ShowPlayCardsResponse = JSON.parse(content)
+            this.showPlayCards(showPlayCardsResponse.showIdx, showPlayCardsResponse.cards)
+        }
+    }
+
+    showPlayCards(idx: number, cards: Poker[]) {
+        for (let i = 0; i < cards.length; i++) {
+            this.showPlayCardsImgs[idx].push(
+                this.add.sprite(
+                    showPokerPositions[idx][i].x,
+                    showPokerPositions[idx][i].y,
+                    'poker',
+                    getPokerPosition(cards[i])
+                ).setOrigin(0, 0).setInteractive()
+            )
         }
     }
 
@@ -472,14 +511,14 @@ export class GameScene extends Phaser.Scene {
         console.log(dayjs().format())
         let setIntervalID = setInterval(() => {
             console.log(dayjs().format())
-        }, 3000)
+        }, 1000)
         setTimeout(() => {
             console.log(dayjs().format())
             clearInterval(setIntervalID)
             this.destoryAllShowMaster()
             this.sendMessageToServer(SHOW_MASTER_DONE, "")
             this.showZhuang()
-        }, 15500)
+        }, 5000)
     }
 
     showZhuang() {

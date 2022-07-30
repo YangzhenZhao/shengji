@@ -7,6 +7,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/YangzhenZhao/shengji/back_end/server/dto"
 	"github.com/gorilla/websocket"
 )
 
@@ -44,7 +45,7 @@ func (c *Client) playerMessageHandler() {
 				ReceiveGameChan: c.ReceiveGameChan,
 			}
 		case setPlayerName:
-			playerMeta, err := getPlayerMeta(playerMessage.Content)
+			playerMeta, err := dto.GetPlayerMeta(playerMessage.Content)
 			if err != nil {
 				log.Printf("unmarshal playerMeta err: %+v", err)
 				continue
@@ -58,21 +59,21 @@ func (c *Client) playerMessageHandler() {
 			message, _ := json.Marshal(playerMessage)
 			c.Room.HandlerChan <- message
 		case showMaster:
-			var req ShowMasterRequest
+			var req dto.ShowMasterRequest
 			err := json.Unmarshal([]byte(playerMessage.Content), &req)
 			if err != nil {
 				log.Printf("unmarshal playerMeta err: %+v", err)
 				continue
 			}
 			fmt.Printf("%+v\n", req)
-			c.Game.receiveShowMaster(&GameShowMasterRequest{
+			c.Game.receiveShowMaster(&dto.GameShowMasterRequest{
 				Req:      req,
 				Position: c.Room.Position,
 			})
 		case showMasterDone:
 			c.Game.receiveShowMasterDone()
 		case kouCards:
-			var kouCards []*Poker
+			var kouCards []*dto.Poker
 			err := json.Unmarshal([]byte(playerMessage.Content), &kouCards)
 			if err != nil {
 				log.Printf("unmarshal kouCards err: %+v", err)
@@ -80,7 +81,7 @@ func (c *Client) playerMessageHandler() {
 			}
 			c.Game.receiveBottomCards(kouCards)
 		case playCards:
-			var playCards []*Poker
+			var playCards []*dto.Poker
 			err := json.Unmarshal([]byte(playerMessage.Content), &playCards)
 			if err != nil {
 				log.Printf("unmarshal playCards err: %+v", err)

@@ -6,6 +6,8 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/YangzhenZhao/shengji/back_end/server/common"
+	"github.com/YangzhenZhao/shengji/back_end/server/dto"
 	"github.com/gorilla/websocket"
 )
 
@@ -42,10 +44,10 @@ type Game struct {
 	IsProtect          bool
 	PlayerConns        []*websocket.Conn
 	ShowMasterDoneChan chan bool
-	ShowMasterChan     chan *GameShowMasterRequest
-	BottomCards        []*Poker
-	BottomCardsChan    chan []*Poker
-	PlayCardsChan      []chan []*Poker
+	ShowMasterChan     chan *dto.GameShowMasterRequest
+	BottomCards        []*dto.Poker
+	BottomCardsChan    chan []*dto.Poker
+	PlayCardsChan      []chan []*dto.Poker
 }
 
 var turnNextMap = map[int]int{
@@ -65,7 +67,7 @@ func (g *Game) bankerTeam() teamType {
 	return secondTeam
 }
 
-func (g *Game) sendDealPoker(playerIdx int, poker Poker) {
+func (g *Game) sendDealPoker(playerIdx int, poker dto.Poker) {
 	content, _ := json.Marshal(poker)
 	roomListMessage := ResponseMessage{
 		MessageType: dealPoker,
@@ -75,7 +77,7 @@ func (g *Game) sendDealPoker(playerIdx int, poker Poker) {
 	g.PlayerConns[playerIdx].WriteMessage(websocket.TextMessage, sendMessage)
 }
 
-func (g *Game) sendHoleCards(playerIdx int, cards []Poker) {
+func (g *Game) sendHoleCards(playerIdx int, cards []dto.Poker) {
 	content, _ := json.Marshal(cards)
 	roomListMessage := ResponseMessage{
 		MessageType: dealHoleCards,
@@ -94,7 +96,21 @@ func (g *Game) sendPlayTrun(playerIdx int) {
 	g.PlayerConns[playerIdx].WriteMessage(websocket.TextMessage, sendMessage)
 }
 
-func (g *Game) sendShowMasterPosition(playerIdx int, res *ShowMasterResponse) {
+func (g *Game) sendShowPlayCards(showCardsIdx, playerIdx int, cards []*dto.Poker) {
+	relativeIdx := common.GetRelativePos(playerIdx, showCardsIdx)
+	content, _ := json.Marshal(dto.ShowPlayCardsResponse{
+		ShowIdx: relativeIdx,
+		Cards:   cards,
+	})
+	resp := ResponseMessage{
+		MessageType: showPlayCards,
+		Content:     string(content),
+	}
+	sendMessage, _ := json.Marshal(resp)
+	g.PlayerConns[playerIdx].WriteMessage(websocket.TextMessage, sendMessage)
+}
+
+func (g *Game) sendShowMasterPosition(playerIdx int, res *dto.ShowMasterResponse) {
 	content, _ := json.Marshal(res)
 	roomListMessage := ResponseMessage{
 		MessageType: showMasterResult,
@@ -104,11 +120,15 @@ func (g *Game) sendShowMasterPosition(playerIdx int, res *ShowMasterResponse) {
 	g.PlayerConns[playerIdx].WriteMessage(websocket.TextMessage, sendMessage)
 }
 
+func (g *Game) calcWinPos(turnCards [][]*dto.Poker) int {
+	return 0
+}
+
 func (g *Game) Run() *GameResult {
 	defer close(g.ShowMasterChan)
 	defer close(g.ShowMasterDoneChan)
 
-	dealPokers := shufflePokers(cardsList)
+	dealPokers := shufflePokers(common.CardsList)
 	for i := 0; i < 4; i++ {
 		tmpIdx := i
 		go func() {
@@ -126,11 +146,11 @@ func (g *Game) Run() *GameResult {
 				g.IsProtect = true
 			}
 			for i := 0; i < 4; i++ {
-				g.sendShowMasterPosition(i, &ShowMasterResponse{
+				g.sendShowMasterPosition(i, &dto.ShowMasterResponse{
 					Color:              gameReq.Req.Color,
 					IsProtect:          gameReq.Req.IsOppose || gameReq.Req.IsSelfProtect,
 					IsSelfShowMaster:   i == int(gameReq.Position)-1,
-					ShowMasterPosition: int32(getRelativePos(i, int(gameReq.Position)-1)),
+					ShowMasterPosition: int32(common.GetRelativePos(i, int(gameReq.Position)-1)),
 				})
 			}
 		}
@@ -146,14 +166,27 @@ func (g *Game) Run() *GameResult {
 	}
 	turnPosition := int(g.Banker - 1)
 	for {
+		turnCards := [][]*dto.Poker{
+			{},
+			{},
+			{},
+			{},
+		}
 		for i := 0; i < 4; i++ {
 			g.sendPlayTrun(turnPosition)
 			cards := <-g.PlayCardsChan[turnPosition]
+			turnCards[turnPosition] = cards
 			for j := 0; j < len(cards); j++ {
 				log.Printf("%+v\n", cards[j])
 			}
+			for j := 0; j < 4; j++ {
+				if j != turnPosition {
+					g.sendShowPlayCards(turnPosition, j, cards)
+				}
+			}
 			turnPosition = turnNextMap[turnPosition+1] - 1
 		}
+		turnPosition = g.calcWinPos(turnCards)
 	}
 	stuckChan := make(chan bool)
 	stuckChan <- false
@@ -164,20 +197,20 @@ func (g *Game) receiveShowMasterDone() {
 	g.ShowMasterDoneChan <- true
 }
 
-func (g *Game) receiveBottomCards(cards []*Poker) {
+func (g *Game) receiveBottomCards(cards []*dto.Poker) {
 	g.BottomCardsChan <- cards
 }
 
-func (g *Game) receivePlayCards(idx int, cards []*Poker) {
+func (g *Game) receivePlayCards(idx int, cards []*dto.Poker) {
 	g.PlayCardsChan[idx] <- cards
 }
 
-func (g *Game) receiveShowMaster(req *GameShowMasterRequest) {
+func (g *Game) receiveShowMaster(req *dto.GameShowMasterRequest) {
 	g.ShowMasterChan <- req
 }
 
-func shufflePokers(src []Poker) []Poker {
-	dst := []Poker{}
+func shufflePokers(src []dto.Poker) []dto.Poker {
+	dst := []dto.Poker{}
 	r := rand.New(rand.NewSource(time.Now().Unix()))
 	for _, i := range r.Perm(len(src)) {
 		dst = append(dst, src[i])

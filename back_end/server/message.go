@@ -21,6 +21,7 @@ const (
 	showMasterResult responseMessageType = "show_master_result"
 	dealHoleCards    responseMessageType = "deal_hole_cards"
 	playTurn         responseMessageType = "play_trun"
+	showPlayCards    responseMessageType = "show_play_cards"
 )
 
 type RequestMessage struct {

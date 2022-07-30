@@ -1,6 +1,6 @@
-package server
+package common
 
-func getRelativePos(myPos, referPos int) int {
+func GetRelativePos(myPos, referPos int) int {
 	if myPos == referPos {
 		return 0
 	}

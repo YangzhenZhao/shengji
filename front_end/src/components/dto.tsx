@@ -13,6 +13,7 @@ export const DEAL_POKER = "deal_poker"
 export const MATCH_BEGIN = "match_begin"
 export const REVEIVE_HOLE_CARDS = "deal_hole_cards"
 export const PLAY_TURN = "play_trun"
+export const SHOW_PLAY_CARDS = "show_play_cards"
 
 export const FULL_POKER_NUM = 25
 
@@ -40,6 +41,11 @@ export interface ShowMasterRequest {
     color: string
     isSelfProtect: boolean,
     isOppose: boolean,
+}
+
+export interface ShowPlayCardsResponse {
+    showIdx: number
+    cards: Poker[]
 }
 
 export interface ShowMasterResponse {

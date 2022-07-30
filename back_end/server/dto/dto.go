@@ -1,13 +1,19 @@
-package server
+package dto
 
 import "encoding/json"
+
+type Poker struct {
+	Color  string `json:"color"`
+	Number string `json:"number"`
+}
 
 type PlayerMeta struct {
 	UUID       string `json:"UUID"`
 	PlayerName string `json:"playerName"`
 }
 
-func getPlayerMeta(msg string) (PlayerMeta, error) {
+// GetPlayerMeta ...
+func GetPlayerMeta(msg string) (PlayerMeta, error) {
 	meta := PlayerMeta{}
 	err := json.Unmarshal([]byte(msg), &meta)
 	return meta, err
@@ -29,4 +35,9 @@ type ShowMasterResponse struct {
 	IsProtect          bool   `json:"isProtect"`
 	IsSelfShowMaster   bool   `json:"isSelfShowMaster"`
 	ShowMasterPosition int32  `json:"showMasterPosition"`
+}
+
+type ShowPlayCardsResponse struct {
+	ShowIdx int      `json:"showIdx"`
+	Cards   []*Poker `json:"cards"`
 }

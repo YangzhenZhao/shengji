@@ -21,19 +21,6 @@ const (
 	fourth
 )
 
-type teamType int
-
-const (
-	unknownTeam teamType = iota
-	firstTeam
-	secondTeam
-)
-
-type GameResult struct {
-	Score            int
-	FinalCardWinTeam teamType
-}
-
 type Game struct {
 	Round              string
 	FirstTeamRound     string
@@ -57,14 +44,14 @@ var turnNextMap = map[int]int{
 	3: 1,
 }
 
-func (g *Game) bankerTeam() teamType {
+func (g *Game) bankerTeam() dto.TeamType {
 	if g.Banker == unknown {
-		return unknownTeam
+		return dto.UnknownTeam
 	}
 	if g.Banker == first || g.Banker == second {
-		return firstTeam
+		return dto.FirstTeam
 	}
-	return secondTeam
+	return dto.SecondTeam
 }
 
 func (g *Game) sendDealPoker(playerIdx int, poker dto.Poker) {
@@ -120,11 +107,7 @@ func (g *Game) sendShowMasterPosition(playerIdx int, res *dto.ShowMasterResponse
 	g.PlayerConns[playerIdx].WriteMessage(websocket.TextMessage, sendMessage)
 }
 
-func (g *Game) calcWinPos(turnCards [][]*dto.Poker) int {
-	return 0
-}
-
-func (g *Game) Run() *GameResult {
+func (g *Game) Run() *dto.GameResult {
 	defer close(g.ShowMasterChan)
 	defer close(g.ShowMasterDoneChan)
 
@@ -166,31 +149,13 @@ func (g *Game) Run() *GameResult {
 	}
 	turnPosition := int(g.Banker - 1)
 	for {
-		turnCards := [][]*dto.Poker{
-			{},
-			{},
-			{},
-			{},
-		}
-		for i := 0; i < 4; i++ {
-			g.sendPlayTrun(turnPosition)
-			cards := <-g.PlayCardsChan[turnPosition]
-			turnCards[turnPosition] = cards
-			for j := 0; j < len(cards); j++ {
-				log.Printf("%+v\n", cards[j])
-			}
-			for j := 0; j < 4; j++ {
-				if j != turnPosition {
-					g.sendShowPlayCards(turnPosition, j, cards)
-				}
-			}
-			turnPosition = turnNextMap[turnPosition+1] - 1
-		}
-		turnPosition = g.calcWinPos(turnCards)
+		round := newRound(g, turnPosition)
+		roundResult := round.run()
+		turnPosition = roundResult.WinPosition
 	}
 	stuckChan := make(chan bool)
 	stuckChan <- false
-	return &GameResult{}
+	return &dto.GameResult{}
 }
 
 func (g *Game) receiveShowMasterDone() {

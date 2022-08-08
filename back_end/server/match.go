@@ -61,7 +61,7 @@ func (m *Match) sendMatchBegin() {
 	}
 }
 
-func (m *Match) isFinish(game *Game, gameResult *GameResult) bool {
+func (m *Match) isFinish(game *Game, gameResult *dto.GameResult) bool {
 	return game.Round == "A" && gameResult.FinalCardWinTeam == game.bankerTeam() && gameResult.Score < 80
 }
 

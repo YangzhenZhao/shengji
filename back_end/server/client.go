@@ -59,7 +59,6 @@ func ServerWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		Conn:            conn,
 		ReceiveGameChan: make(chan *Game),
 	}
-	go client.tickerHandler()
 	go client.playerMessageHandler()
 	go client.receiveGameHandler()
 }
@@ -72,6 +71,12 @@ func (c *Client) sendRoomList() {
 	}
 	sendMessage, _ := json.Marshal(roomListMessage)
 	c.Conn.WriteMessage(websocket.TextMessage, sendMessage)
+}
+
+func (c *Client) sendPong() {
+	if err := c.Conn.WriteMessage(websocket.TextMessage, []byte("pong")); err != nil {
+		log.Printf("error: %v", err)
+	}
 }
 
 func (c *Client) sendJoinRoomFail(errMsg string) {

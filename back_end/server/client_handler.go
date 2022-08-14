@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/YangzhenZhao/shengji/back_end/server/dto"
 	"github.com/gorilla/websocket"
@@ -16,10 +15,12 @@ func (c *Client) playerMessageHandler() {
 		log.Printf("%s ws 关闭\n", c.PlayerName)
 		c.Conn.Close()
 	}()
-	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.Conn.SetPongHandler(func(string) error { c.Conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	for {
-		_, message, err := c.Conn.ReadMessage()
+		messageType, message, err := c.Conn.ReadMessage()
+		if messageType != websocket.TextMessage {
+			log.Printf("messageType = %d", messageType)
+			continue
+		}
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
@@ -28,6 +29,10 @@ func (c *Client) playerMessageHandler() {
 			break
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
+		if string(message) == "ping" {
+			c.sendPong()
+			continue
+		}
 		playerMessage := RequestMessage{}
 		err = json.Unmarshal(message, &playerMessage)
 		if err != nil {
@@ -98,19 +103,5 @@ func (c *Client) receiveGameHandler() {
 	for game := range c.ReceiveGameChan {
 		c.Game = game
 		log.Printf("hello %s 新的对局开始了!, 当前打 %s %+v\n", c.PlayerName, game.Round, game)
-	}
-}
-
-func (c *Client) tickerHandler() {
-	ticker := time.NewTicker(pingPeriod)
-	defer func() {
-		ticker.Stop()
-	}()
-	for {
-		<-ticker.C
-		c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
-		if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-			return
-		}
 	}
 }

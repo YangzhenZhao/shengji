@@ -145,6 +145,10 @@ export class GameScene extends Phaser.Scene {
         this.buckleCards = []
         this.playCards = []
         this.showPlayCardsImgs = [[], [], [], []]
+        this.heartCheckTimeout = 10000  //10s
+        this.heartCheckServerTimeout = 30000 // 30s
+        this.heartCheckTimeoutObj = null
+        this.heartCheckServerTimeoutObj = null
     }
 
     preload () {
@@ -189,6 +193,24 @@ export class GameScene extends Phaser.Scene {
         this.websocket = new WebSocket("ws://127.0.0.1:8080/ws")
         this.websocket.onopen = this.onopen.bind(this)
         this.websocket.onmessage = this.onmessage.bind(this)
+        this.websocket.onclose = this.onclose.bind(this)
+    }
+
+    heartCheckStart() {
+        let self = this
+        this.heartCheckTimeoutObj = setTimeout(function(){
+            self.websocket.send("ping");
+            self.heartCheckServerTimeoutObj = setTimeout(function(){
+                console.log("服务器无响应，断开连接!!!", dayjs().format())
+                // self.websocket.close();//如果onclose会执行reconnect，我们执行ws.close()就行了.如果直接执行reconnect 会触发onclose导致重连两次
+            }, self.heartCheckServerTimeout)
+        }, this.heartCheckTimeout)
+    }
+
+    heartCheckReset() {
+        clearTimeout(this.heartCheckTimeoutObj)
+        clearTimeout(this.heartCheckServerTimeoutObj)
+        this.heartCheckStart()
     }
 
     onopen() {
@@ -198,9 +220,21 @@ export class GameScene extends Phaser.Scene {
             UUID: nanoid(),
             playerName: this.playerName,
         }))
+
+        this.heartCheckStart()
+    }
+
+    onclose(e) {
+        console.log("oncloase: 与服务器断开连接!!", dayjs().format())
+        console.log('websocket 断开: ' + e.code + ' ' + e.reason + ' ' + e.wasClean)
+        console.log(e)
     }
 
     onmessage(message) {
+        if (message.data === "pong") {
+            this.heartCheckReset()
+            return
+        }
         const data = JSON.parse(message.data)
         const messageType = data["messageType"]
         const content = data["content"]

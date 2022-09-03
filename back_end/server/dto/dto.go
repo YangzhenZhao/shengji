@@ -1,10 +1,42 @@
 package dto
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 type Poker struct {
 	Color  string `json:"color"`
 	Number string `json:"number"`
+}
+
+var CardValueMap = map[string]int{
+	"2":  2,
+	"3":  3,
+	"4":  4,
+	"5":  5,
+	"6":  6,
+	"7":  7,
+	"8":  8,
+	"9":  9,
+	"10": 10,
+	"J":  11,
+	"Q":  12,
+	"K":  13,
+	"A":  14,
+}
+
+type Cards []*Poker
+
+func (c Cards) Len() int {
+	return len(c)
+}
+
+func (c Cards) Less(i, j int) bool {
+	return CardValueMap[c[i].Number] < CardValueMap[c[j].Number]
+}
+
+func (c Cards) Swap(i, j int) {
+	c[i], c[j] = c[j], c[i]
 }
 
 type PlayerMeta struct {

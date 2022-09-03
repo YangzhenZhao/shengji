@@ -148,18 +148,29 @@ func (g *Game) Run() *dto.GameResult {
 		log.Println(g.BottomCards[i])
 	}
 	turnPosition := int(g.Banker - 1)
+	scores := 0
 	for {
 		round := newRound(g, turnPosition)
 		roundResult := round.run()
 		turnPosition = roundResult.WinPosition
+		scores += roundResult.IncreaseScore
 	}
 	stuckChan := make(chan bool)
 	stuckChan <- false
-	return &dto.GameResult{}
+	return &dto.GameResult{
+		Score: scores,
+	}
 }
 
 func (g *Game) receiveShowMasterDone() {
 	g.ShowMasterDoneChan <- true
+}
+
+func (g *Game) PlayNumber() string {
+	if g.Banker == first || g.Banker == second {
+		return g.FirstTeamRound
+	}
+	return g.SecondTeamRound
 }
 
 func (g *Game) receiveBottomCards(cards []*dto.Poker) {

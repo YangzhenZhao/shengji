@@ -3,6 +3,7 @@ package server
 import (
 	"log"
 
+	"github.com/YangzhenZhao/shengji/back_end/server/common"
 	"github.com/YangzhenZhao/shengji/back_end/server/dto"
 )
 
@@ -18,11 +19,21 @@ func newRound(game *Game, firstTurnPosition int) *Round {
 	}
 }
 
+// TODO: 支持甩牌
+// 目前只支持单牌，对子，拖拉机
 func (r *Round) run() *dto.RoundResult {
 	turnPosition := r.firstTurnPosition
+	cardsTotalScore := 0
+	var comparator *Comparator
 	for i := 0; i < 4; i++ {
 		r.game.sendPlayTrun(turnPosition)
 		cards := <-r.game.PlayCardsChan[turnPosition]
+		cardsTotalScore += getCardsScores(cards)
+		if i == 0 {
+			comparator = buildComparator(r.game, cards, turnPosition)
+		} else {
+			comparator.addCards(cards, turnPosition)
+		}
 		for j := 0; j < len(cards); j++ {
 			log.Printf("%+v\n", cards[j])
 		}
@@ -33,7 +44,27 @@ func (r *Round) run() *dto.RoundResult {
 		}
 		turnPosition = turnNextMap[turnPosition+1] - 1
 	}
-	return &dto.RoundResult{
-		WinPosition: 0,
+	increaseScore := 0
+	if r.isEarnScoreTeamWin(comparator) {
+		increaseScore = cardsTotalScore
 	}
+	return &dto.RoundResult{
+		WinPosition:   comparator.winPosition,
+		IncreaseScore: increaseScore,
+	}
+}
+
+func (r *Round) isEarnScoreTeamWin(comparator *Comparator) bool {
+	return comparator.winPosition+1 != int(r.game.Banker) &&
+		common.TeamMateMap[comparator.winPosition]+1 != int(r.game.Banker)
+}
+
+func getCardsScores(cards []*dto.Poker) int {
+	sumScore := 0
+	for _, card := range cards {
+		if score, ok := common.ScoreMap[card.Number]; ok {
+			sumScore += score
+		}
+	}
+	return sumScore
 }

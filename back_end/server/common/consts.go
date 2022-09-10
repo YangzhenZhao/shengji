@@ -15,6 +15,8 @@ const (
 	dianmond = "dianmond"
 	red      = "red"
 	black    = "black"
+
+	PlayerInitCardsNumber int = 25
 )
 
 var TeamMateMap = map[int]int{

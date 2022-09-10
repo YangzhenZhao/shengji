@@ -25,9 +25,11 @@ func (r *Round) run() *dto.RoundResult {
 	turnPosition := r.firstTurnPosition
 	cardsTotalScore := 0
 	var comparator *Comparator
+	var cardsLength int
 	for i := 0; i < 4; i++ {
 		r.game.sendPlayTrun(turnPosition)
 		cards := <-r.game.PlayCardsChan[turnPosition]
+		cardsLength = len(cards)
 		cardsTotalScore += getCardsScores(cards)
 		if i == 0 {
 			comparator = buildComparator(r.game, cards, turnPosition)
@@ -51,6 +53,7 @@ func (r *Round) run() *dto.RoundResult {
 	return &dto.RoundResult{
 		WinPosition:   comparator.winPosition,
 		IncreaseScore: increaseScore,
+		CardsLength:   cardsLength,
 	}
 }
 

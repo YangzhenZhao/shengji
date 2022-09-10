@@ -11,4 +11,6 @@ const (
 type GameResult struct {
 	Score            int
 	FinalCardWinTeam TeamType
+	FinalWinTeam     TeamType
+	UpLevel          int
 }

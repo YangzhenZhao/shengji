@@ -14,6 +14,8 @@ export const MATCH_BEGIN = "match_begin"
 export const REVEIVE_HOLE_CARDS = "deal_hole_cards"
 export const PLAY_TURN = "play_trun"
 export const SHOW_PLAY_CARDS = "show_play_cards"
+export const INCREASE_SCORES = "increase_scores"
+export const ROUND_END = "round_end"
 
 export const FULL_POKER_NUM = 25
 

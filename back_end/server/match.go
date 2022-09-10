@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 
+	"github.com/YangzhenZhao/shengji/back_end/server/common"
 	"github.com/YangzhenZhao/shengji/back_end/server/dto"
 	"github.com/gorilla/websocket"
 )
@@ -21,14 +22,14 @@ func (m *Match) Run() {
 	secondTeamRound := "2"
 	round := "2"
 	isFristRound := true
-	banker := unknown
+	gameBanker := unknown
 	for {
 		game := &Game{
 			Round:              round,
 			FirstTeamRound:     firstTeamRound,
 			SecondTeamRound:    secondTeamRound,
 			IsFristRound:       isFristRound,
-			Banker:             banker,
+			Banker:             gameBanker,
 			PlayerConns:        m.PlayerConns,
 			ShowMasterDoneChan: make(chan bool),
 			ShowMasterChan:     make(chan *dto.GameShowMasterRequest),
@@ -43,11 +44,29 @@ func (m *Match) Run() {
 		m.sendGameToClients(game)
 		gameResult := game.Run()
 		if m.isFinish(game, gameResult) {
-			log.Printf("比赛结束!, 获胜方: %d\n", banker)
+			log.Printf("比赛结束!, 获胜方: %d\n", gameBanker)
 			break
 		}
 		log.Println(gameResult)
 		isFristRound = false
+		if gameResult.FinalWinTeam == dto.FirstTeam {
+			if gameResult.UpLevel > 0 {
+				firstTeamRound = common.NextRoundMap[firstTeamRound]
+			}
+			if gameBanker == third || gameBanker == fourth {
+				gameBanker = banker(turnNextMap[int(gameBanker)])
+			}
+		} else {
+			if gameResult.UpLevel > 0 {
+				secondTeamRound = common.NextRoundMap[secondTeamRound]
+			}
+			if gameBanker == first || gameBanker == second {
+				gameBanker = banker(turnNextMap[int(gameBanker)])
+			}
+		}
+
+		stuckChan := make(chan bool)
+		stuckChan <- false
 	}
 }
 

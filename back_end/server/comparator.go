@@ -22,6 +22,7 @@ type Comparator struct {
 	winCards       dto.Cards
 	isMaster       bool
 	winPosition    int
+	winCardsColor  string
 	firstCardsType cardsType
 }
 
@@ -36,7 +37,9 @@ func buildComparator(
 	}
 	sort.Sort(firstCards)
 	comparator.firstCardsType = comparator.getCardsType(firstCards)
-	if comparator.getCardColor(firstCards[0]) == "master" {
+	cardsColor := comparator.getCardColor(firstCards[0])
+	comparator.winCardsColor = cardsColor
+	if cardsColor == "master" {
 		comparator.isMaster = true
 	}
 	return comparator
@@ -46,34 +49,44 @@ func (c *Comparator) addCards(cards dto.Cards, position int) {
 	if c.isDifferentColors(cards) {
 		return
 	}
-	if c.isMaster && c.getCardColor(cards[0]) != "master" {
+	newCardColor := c.getCardColor(cards[0])
+	if c.isMaster && newCardColor != "master" {
+		return
+	}
+	if !c.isMaster && newCardColor != "master" && newCardColor != c.winCardsColor {
 		return
 	}
 	sort.Sort(cards)
-	if c.isNewCardsGreater(cards) {
+	if c.isNewCardsGreater(cards, newCardColor) {
 		c.winCards = cards
 		c.winPosition = position
 	}
 }
 
-func (c *Comparator) isNewCardsGreater(cards dto.Cards) bool {
+func (c *Comparator) isNewCardsGreater(cards dto.Cards, newCardColor string) bool {
 	newCardsType := c.getCardsType(cards)
 	switch c.firstCardsType {
 	case singleCard:
-		return c.isNewSingleCardGreater(cards[0])
+		return c.isNewSingleCardGreater(cards[0], newCardColor)
 	case pairCards:
-		return newCardsType == pairCards && c.isNewSingleCardGreater(cards[0])
+		return newCardsType == pairCards && c.isNewSingleCardGreater(cards[0], newCardColor)
 	case tractorsCards:
-		return newCardsType == tractorsCards && c.isNewSingleCardGreater(cards[0])
+		return newCardsType == tractorsCards && c.isNewSingleCardGreater(cards[0], newCardColor)
 	case flipCards:
 		log.Println("not support filpCards now!!!")
 	}
 	return false
 }
 
-func (c *Comparator) isNewSingleCardGreater(newCard *dto.Poker) bool {
-	if newCard == c.winCards[0] {
+func (c *Comparator) isNewSingleCardGreater(newCard *dto.Poker, newCardColor string) bool {
+	if newCard.Number == c.winCards[0].Number && newCard.Color == c.winCards[0].Color {
 		return false
+	}
+	if c.isMaster && newCardColor != "master" {
+		return false
+	}
+	if !c.isMaster && newCardColor == "master" {
+		return true
 	}
 	if c.isMaster {
 		oldCardMasterLevel := dto.GetCardMasterLevel(c.winCards[0], c.game.Round)
@@ -95,7 +108,7 @@ func (c *Comparator) getCardsType(cards dto.Cards) cardsType {
 	if len(cards) == 1 {
 		return singleCard
 	}
-	if len(cards) == 2 && cards[0] == cards[1] {
+	if len(cards) == 2 && cards[0].Number == cards[1].Number {
 		return pairCards
 	}
 	if c.isTractorsCards(cards) {

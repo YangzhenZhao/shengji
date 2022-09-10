@@ -20,6 +20,7 @@ import {
     ROOM_LIST_RESPONSE, EXISTS_PLAYERS_RESPONSE, DEAL_POKER, MATCH_BEGIN,
     SHOW_MASTER_DONE, FULL_POKER_NUM, SHOW_MASTER_RESPONSE, showColorIdxMap, REVEIVE_HOLE_CARDS,
     KOU_CARDS, PLAY_TURN, PLAY_CARDS, SHOW_PLAY_CARDS, ShowPlayCardsResponse,
+    INCREASE_SCORES, ROUND_END,
 } from './dto'
 import dayjs from 'dayjs';
 
@@ -292,6 +293,19 @@ export class GameScene extends Phaser.Scene {
         } else if (messageType === SHOW_PLAY_CARDS) {
             let showPlayCardsResponse: ShowPlayCardsResponse = JSON.parse(content)
             this.showPlayCards(showPlayCardsResponse.showIdx, showPlayCardsResponse.cards)
+        } else if (messageType === INCREASE_SCORES) {
+            this.score += Number(content)
+            this.showScore.setText("得分\n"+this.score)
+        } else if (messageType === ROUND_END) {
+            this.destoryShowPlayCardsImgs()
+        }
+    }
+
+    destoryShowPlayCardsImgs() {
+        for (let i = 0; i < 4; i++) {
+            for (let j = 0; j < this.showPlayCardsImgs[i].length; j++) {
+                this.showPlayCardsImgs[i][j].destroy()
+            }
         }
     }
 
@@ -511,8 +525,6 @@ export class GameScene extends Phaser.Scene {
                     image.setData("status", "up")
                     image.y -= 30
                     this.playCards.push(cards[i])
-                    this.score += 5
-                    this.showScore.setText("得分\n"+this.score)
                 } else {
                     image.setData("status", "down")
                     image.y += 30

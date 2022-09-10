@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"math/rand"
+	"strconv"
 	"time"
 
 	"github.com/YangzhenZhao/shengji/back_end/server/common"
@@ -97,6 +98,27 @@ func (g *Game) sendShowPlayCards(showCardsIdx, playerIdx int, cards []*dto.Poker
 	g.PlayerConns[playerIdx].WriteMessage(websocket.TextMessage, sendMessage)
 }
 
+func (g *Game) sendIncreaseScores(score int) {
+	resp := ResponseMessage{
+		MessageType: increaseScores,
+		Content:     strconv.Itoa(score),
+	}
+	sendMessage, _ := json.Marshal(resp)
+	for i := 0; i < 4; i++ {
+		g.PlayerConns[i].WriteMessage(websocket.TextMessage, sendMessage)
+	}
+}
+
+func (g *Game) sendRoundEnd() {
+	resp := ResponseMessage{
+		MessageType: roundEnd,
+	}
+	sendMessage, _ := json.Marshal(resp)
+	for i := 0; i < 4; i++ {
+		g.PlayerConns[i].WriteMessage(websocket.TextMessage, sendMessage)
+	}
+}
+
 func (g *Game) sendShowMasterPosition(playerIdx int, res *dto.ShowMasterResponse) {
 	content, _ := json.Marshal(res)
 	roomListMessage := ResponseMessage{
@@ -149,16 +171,51 @@ func (g *Game) Run() *dto.GameResult {
 	}
 	turnPosition := int(g.Banker - 1)
 	scores := 0
+	playTotalCardsNum := 0
+	finalCardWinTeam := dto.FirstTeam
 	for {
 		round := newRound(g, turnPosition)
 		roundResult := round.run()
 		turnPosition = roundResult.WinPosition
 		scores += roundResult.IncreaseScore
+		if roundResult.IncreaseScore > 0 {
+			g.sendIncreaseScores(roundResult.IncreaseScore)
+		}
+		time.Sleep(2 * time.Second)
+		g.sendRoundEnd()
+		playTotalCardsNum += roundResult.CardsLength
+		if playTotalCardsNum == common.PlayerInitCardsNumber {
+			if roundResult.WinPosition > 1 {
+				finalCardWinTeam = dto.SecondTeam
+			}
+			break
+		}
 	}
-	stuckChan := make(chan bool)
-	stuckChan <- false
+	upLevel := 1
+	var finalWinTeam dto.TeamType
+	if g.Banker == first || g.Banker == second {
+		finalWinTeam = dto.FirstTeam
+		if finalCardWinTeam == dto.SecondTeam || scores >= 80 {
+			if finalCardWinTeam == dto.FirstTeam || scores < 80 {
+				upLevel = 0
+			}
+			finalWinTeam = dto.SecondTeam
+		}
+	} else {
+		finalWinTeam = dto.SecondTeam
+		if finalCardWinTeam == dto.FirstTeam || scores >= 80 {
+			if finalCardWinTeam == dto.SecondTeam || scores < 80 {
+				upLevel = 0
+			}
+			finalWinTeam = dto.FirstTeam
+		}
+	}
+
 	return &dto.GameResult{
-		Score: scores,
+		Score:            scores,
+		FinalCardWinTeam: finalCardWinTeam,
+		FinalWinTeam:     finalWinTeam,
+		UpLevel:          upLevel,
 	}
 }
 

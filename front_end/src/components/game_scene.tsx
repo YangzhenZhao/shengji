@@ -20,7 +20,7 @@ import {
     ROOM_LIST_RESPONSE, EXISTS_PLAYERS_RESPONSE, DEAL_POKER, MATCH_BEGIN,
     SHOW_MASTER_DONE, FULL_POKER_NUM, SHOW_MASTER_RESPONSE, showColorIdxMap, REVEIVE_HOLE_CARDS,
     KOU_CARDS, PLAY_TURN, PLAY_CARDS, SHOW_PLAY_CARDS, ShowPlayCardsResponse,
-    INCREASE_SCORES, ROUND_END,
+    INCREASE_SCORES, ROUND_END, CardValueMap,
 } from './dto'
 import dayjs from 'dayjs';
 
@@ -276,6 +276,7 @@ export class GameScene extends Phaser.Scene {
         } else if (messageType === SHOW_MASTER_RESPONSE) {
             this.gameDetail.onShowMasterRes(JSON.parse(content))
             this.showZhuangColor()
+            this.showPokers()
         } else if (messageType === REVEIVE_HOLE_CARDS) {
             this.showBuckleCards(JSON.parse(content))
         } else if (messageType === PLAY_TURN) {
@@ -343,16 +344,37 @@ export class GameScene extends Phaser.Scene {
     appendPoker(poker: Poker) {
         if (poker.number === "joker") {
             this.playersCards.jokers.push(poker)
+            this.playersCards.jokers.sort((a, b): Number => {
+                if (a.color === b.color) {
+                    return 0
+                }
+                if (a.color === "red") {
+                    return 1
+                }
+                return -1
+            })
         } else if (poker.number === this.gameDetail.playNumber) {
             this.playersCards.playNumberCards.push(poker)
         } else if (poker.color === SPADE) {
             this.playersCards.spadeCards.push(poker)
+            this.playersCards.spadeCards.sort((a, b): Number => {
+                return CardValueMap.get(b.number)! - CardValueMap.get(a.number)!
+            })
         } else if (poker.color === HEART) {
             this.playersCards.heartCards.push(poker)
+            this.playersCards.heartCards.sort((a, b): Number => {
+                return CardValueMap.get(b.number)! - CardValueMap.get(a.number)!
+            })
         } else if (poker.color === CLUB) {
             this.playersCards.clubCards.push(poker)
+            this.playersCards.clubCards.sort((a, b): Number => {
+                return CardValueMap.get(b.number)! - CardValueMap.get(a.number)!
+            })
         } else {
             this.playersCards.dianmondCards.push(poker)
+            this.playersCards.dianmondCards.sort((a, b): Number => {
+                return CardValueMap.get(b.number)! - CardValueMap.get(a.number)!
+            })
         }
 
         this.playersCards.cardNum += 1
@@ -432,10 +454,27 @@ export class GameScene extends Phaser.Scene {
         this.playCards = []
         let position = this.showSomePokers(0, this.playersCards.jokers)
         position = this.showSomePokers(position, this.playersCards.playNumberCards)
-        position = this.showSomePokers(position, this.playersCards.spadeCards)
-        position = this.showSomePokers(position, this.playersCards.heartCards)
-        position = this.showSomePokers(position, this.playersCards.clubCards)
-        this.showSomePokers(position, this.playersCards.dianmondCards)
+        if (this.gameDetail.masterFlower === SPADE || this.gameDetail.masterFlower === "red" || this.gameDetail.masterFlower === "black") {
+            position = this.showSomePokers(position, this.playersCards.spadeCards)
+            position = this.showSomePokers(position, this.playersCards.heartCards)
+            position = this.showSomePokers(position, this.playersCards.clubCards)
+            this.showSomePokers(position, this.playersCards.dianmondCards)
+        } else if (this.gameDetail.masterFlower === HEART) {
+            position = this.showSomePokers(position, this.playersCards.heartCards)
+            position = this.showSomePokers(position, this.playersCards.clubCards)
+            position = this.showSomePokers(position, this.playersCards.dianmondCards)
+            this.showSomePokers(position, this.playersCards.spadeCards)
+        } else if (this.gameDetail.masterFlower === CLUB) {
+            position = this.showSomePokers(position, this.playersCards.clubCards)
+            position = this.showSomePokers(position, this.playersCards.dianmondCards)
+            position = this.showSomePokers(position, this.playersCards.spadeCards)
+            position = this.showSomePokers(position, this.playersCards.heartCards)
+        } else {
+            position =  this.showSomePokers(position, this.playersCards.dianmondCards)
+            position = this.showSomePokers(position, this.playersCards.spadeCards)
+            position = this.showSomePokers(position, this.playersCards.heartCards)
+            position = this.showSomePokers(position, this.playersCards.clubCards)
+        }        
     }
 
     showBuckleCards(holeCards: Poker[]) {

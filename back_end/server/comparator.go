@@ -26,6 +26,7 @@ type Comparator struct {
 	firstCardsType cardsType
 }
 
+// firstPosition: 0,1,2,3
 func buildComparator(
 	game *Game, firstCards dto.Cards,
 	firstPosition int,
@@ -36,6 +37,7 @@ func buildComparator(
 		winPosition: firstPosition,
 	}
 	sort.Sort(firstCards)
+	log.Printf("now win position = %d (firstPosition)", firstPosition)
 	comparator.firstCardsType = comparator.getCardsType(firstCards)
 	cardsColor := comparator.getCardColor(firstCards[0])
 	comparator.winCardsColor = cardsColor
@@ -60,6 +62,9 @@ func (c *Comparator) addCards(cards dto.Cards, position int) {
 	if c.isNewCardsGreater(cards, newCardColor) {
 		c.winCards = cards
 		c.winPosition = position
+		log.Printf("now win position = %d (addCards)", position)
+		c.winCardsColor = newCardColor
+		c.isMaster = c.winCardsColor == "master"
 	}
 }
 

@@ -18,7 +18,7 @@ func (c *Client) playerMessageHandler() {
 	for {
 		messageType, message, err := c.Conn.ReadMessage()
 		if messageType != websocket.TextMessage {
-			log.Printf("messageType = %d", messageType)
+			// log.Printf("messageType = %d", messageType)
 			continue
 		}
 		if err != nil {

@@ -7,6 +7,7 @@ import prepareOk from "../assets/btn/prepare_ok.png"
 import flowerImages from "../assets/flower_color.jpeg"
 import jokerImage from "../assets/joker.webp"
 import zhuangImage from "../assets/zhuang.jpg"
+import miniStarImg from "../assets/ministar.png"
 import kouGreyImage from "../assets/kou_hei.gif"
 import kouLightImage from "../assets/kou_light.gif"
 import playCardsGreyImg from "../assets/chu_pai_grey.gif"
@@ -159,6 +160,7 @@ export class GameScene extends Phaser.Scene {
         this.load.image("prepareOk", prepareOk)
         this.load.image("jokerImage", jokerImage)
         this.load.image("zhuangImage", zhuangImage)
+        this.load.image("miniStarImage", miniStarImg)
         this.load.image("kouGreyImage", kouGreyImage)
         this.load.image("kouLightImage", kouLightImage)
         this.load.image("playCardsGreyImg", playCardsGreyImg)
@@ -176,6 +178,8 @@ export class GameScene extends Phaser.Scene {
 
     create() {
         this.add.image(0, 0, 'bg2').setOrigin(0).setDisplaySize(screenWidth, screenHeight);
+
+        this.add.image(500, 500, 'miniStarImage').setOrigin(0, 0).setDisplaySize(50, 50).setInteractive()
 
         this.playersTexts[0] = this.add.text(playerTextPositions[0].x, playerTextPositions[0].y, this.playerName).setColor('white').setFontSize(28).setShadow(2, 2, "#333333", 2, true, true)
         this.playersTexts[1] = this.playersTexts[1] = this.add.text(playerTextPositions[1].x, playerTextPositions[1].y, '空闲位置').setColor('red').setFontSize(28).setShadow(2, 2, "#333333", 2, true, true);
@@ -445,6 +449,10 @@ export class GameScene extends Phaser.Scene {
     clearPokers() {
         for (let i = 0; i < this.pokerImages.length; i++) {
             this.pokerImages[i].destroy()
+            let attachStar = this.pokerImages[i].getData("star")
+            if (attachStar !== undefined) {
+                attachStar.destory()
+            }
         }
         this.pokerImages = []
     }
@@ -453,27 +461,31 @@ export class GameScene extends Phaser.Scene {
         this.clearPokers()
         this.playCards = []
         let position = this.showSomePokers(0, this.playersCards.jokers)
-        position = this.showSomePokers(position, this.playersCards.playNumberCards)
-        if (this.gameDetail.masterFlower === SPADE || this.gameDetail.masterFlower === "red" || this.gameDetail.masterFlower === "black") {
-            position = this.showSomePokers(position, this.playersCards.spadeCards)
-            position = this.showSomePokers(position, this.playersCards.heartCards)
-            position = this.showSomePokers(position, this.playersCards.clubCards)
-            this.showSomePokers(position, this.playersCards.dianmondCards)
+        position = this.showSomePokers(position, this.playersCards.playNumberCards, true)
+        if (this.gameDetail.masterFlower === SPADE || this.gameDetail.masterFlower === "" || this.gameDetail.masterFlower === "red" || this.gameDetail.masterFlower === "black") {
+            if (this.gameDetail.masterFlower === SPADE) {
+                position = this.showSomePokers(position, this.playersCards.spadeCards, true)
+            } else {
+                position = this.showSomePokers(position, this.playersCards.spadeCards, false)
+            }
+            position = this.showSomePokers(position, this.playersCards.heartCards, false)
+            position = this.showSomePokers(position, this.playersCards.clubCards, false)
+            this.showSomePokers(position, this.playersCards.dianmondCards, false)
         } else if (this.gameDetail.masterFlower === HEART) {
-            position = this.showSomePokers(position, this.playersCards.heartCards)
-            position = this.showSomePokers(position, this.playersCards.clubCards)
-            position = this.showSomePokers(position, this.playersCards.dianmondCards)
-            this.showSomePokers(position, this.playersCards.spadeCards)
+            position = this.showSomePokers(position, this.playersCards.heartCards, true)
+            position = this.showSomePokers(position, this.playersCards.clubCards, false)
+            position = this.showSomePokers(position, this.playersCards.dianmondCards, false)
+            this.showSomePokers(position, this.playersCards.spadeCards, false)
         } else if (this.gameDetail.masterFlower === CLUB) {
-            position = this.showSomePokers(position, this.playersCards.clubCards)
-            position = this.showSomePokers(position, this.playersCards.dianmondCards)
-            position = this.showSomePokers(position, this.playersCards.spadeCards)
-            position = this.showSomePokers(position, this.playersCards.heartCards)
+            position = this.showSomePokers(position, this.playersCards.clubCards, true)
+            position = this.showSomePokers(position, this.playersCards.dianmondCards, false)
+            position = this.showSomePokers(position, this.playersCards.spadeCards, false)
+            position = this.showSomePokers(position, this.playersCards.heartCards, false)
         } else {
-            position =  this.showSomePokers(position, this.playersCards.dianmondCards)
-            position = this.showSomePokers(position, this.playersCards.spadeCards)
-            position = this.showSomePokers(position, this.playersCards.heartCards)
-            position = this.showSomePokers(position, this.playersCards.clubCards)
+            position =  this.showSomePokers(position, this.playersCards.dianmondCards, true)
+            position = this.showSomePokers(position, this.playersCards.spadeCards, false)
+            position = this.showSomePokers(position, this.playersCards.heartCards, false)
+            position = this.showSomePokers(position, this.playersCards.clubCards, false)
         }        
     }
 
@@ -554,19 +566,32 @@ export class GameScene extends Phaser.Scene {
         }
     }
 
-    showSomePokers(position: number, cards: Poker[]): number {
+    showSomePokers(position: number, cards: Poker[], addStar: boolean): number {
         for (let i = 0; i < cards.length; i++) {
             let x = pokerPositions[position].x
             let y = pokerPositions[position].y
             let image = this.add.sprite(x, y, 'poker', getPokerPosition(cards[i])).setOrigin(0, 0).setInteractive()
+            let attachStarImg = null
+            if (addStar) {
+                x = image.x
+                y = image.y + image.height - 20
+                attachStarImg = this.add.image(x, y, 'miniStarImage').setOrigin(0, 0).setDisplaySize(20, 20).setInteractive()
+                image.setData("star", attachStarImg)
+            }
             image.on('pointerup', () => {
-                if (image.data === null || image.getData("status") === "down") {
+                if (image.getData("status") === undefined || image.getData("status") === "down") {
                     image.setData("status", "up")
                     image.y -= 30
+                    if (addStar) {
+                        attachStarImg.y -= 30
+                    }
                     this.playCards.push(cards[i])
                 } else {
                     image.setData("status", "down")
                     image.y += 30
+                    if (addStar) {
+                        attachStarImg.y += 30
+                    }
                     this.removePlayCard(cards[i])
                 }
                 console.log(this.playCards)
@@ -603,7 +628,7 @@ export class GameScene extends Phaser.Scene {
             this.destoryAllShowMaster()
             this.sendMessageToServer(SHOW_MASTER_DONE, "")
             this.showZhuang()
-        }, 5000)
+        }, 9000)
     }
 
     showZhuang() {

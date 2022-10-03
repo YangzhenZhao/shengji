@@ -54,3 +54,57 @@ func Test_isTractorsCards(t *testing.T) {
 		})
 	}
 }
+
+func Test_comparator(t *testing.T) {
+	type args struct {
+		firstCards    dto.Cards
+		game          *Game
+		firstPosition int
+	}
+	tests := []struct {
+		name            string
+		args            args
+		otherCards      []dto.Cards
+		otherPosition   []int
+		wantWinPostions []int
+	}{
+		{
+			name: "happy path",
+			args: args{
+				firstPosition: 3,
+				game: &Game{
+					Round:           "2",
+					FirstTeamRound:  "2",
+					SecondTeamRound: "2",
+					Banker:          second,
+					MasterColor:     "dianmond",
+				},
+				firstCards: dto.Cards{
+					{Color: "dianmond", Number: "3"},
+				},
+			},
+			otherPosition: []int{1, 2, 0},
+			otherCards: []dto.Cards{
+				{
+					{Color: "club", Number: "2"},
+				},
+				{
+					{Color: "dianmond", Number: "10"},
+				},
+				{
+					{Color: "red", Number: "joker"},
+				},
+			},
+			wantWinPostions: []int{1, 1, 0},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			comparator := buildComparator(tt.args.game, tt.args.firstCards, tt.args.firstPosition)
+			for i := 0; i < 3; i++ {
+				comparator.addCards(tt.otherCards[i], tt.otherPosition[i])
+				assert.Equal(t, tt.wantWinPostions[i], comparator.winPosition)
+			}
+		})
+	}
+}

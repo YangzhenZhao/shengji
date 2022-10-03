@@ -31,11 +31,6 @@ func (r *Round) run() *dto.RoundResult {
 		cards := <-r.game.PlayCardsChan[turnPosition]
 		cardsLength = len(cards)
 		cardsTotalScore += getCardsScores(cards)
-		if i == 0 {
-			comparator = buildComparator(r.game, cards, turnPosition)
-		} else {
-			comparator.addCards(cards, turnPosition)
-		}
 		for j := 0; j < len(cards); j++ {
 			log.Printf("%+v\n", cards[j])
 		}
@@ -43,6 +38,14 @@ func (r *Round) run() *dto.RoundResult {
 			if j != turnPosition {
 				r.game.sendShowPlayCards(turnPosition, j, cards)
 			}
+		}
+		if i == 0 {
+			comparator = buildComparator(r.game, cards, turnPosition)
+		} else {
+			comparator.addCards(cards, turnPosition)
+		}
+		for j := 0; j < 4; j++ {
+			r.game.sendBiggestPostion(comparator.winPosition, j)
 		}
 		turnPosition = turnNextMap[turnPosition+1] - 1
 	}

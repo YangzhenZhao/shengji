@@ -98,6 +98,16 @@ func (g *Game) sendShowPlayCards(showCardsIdx, playerIdx int, cards []*dto.Poker
 	g.PlayerConns[playerIdx].WriteMessage(websocket.TextMessage, sendMessage)
 }
 
+func (g *Game) sendBiggestPostion(biggestPostionIdx, playerIdx int) {
+	relativeIdx := common.GetRelativePos(playerIdx, biggestPostionIdx)
+	resp := ResponseMessage{
+		MessageType: biggestPostion,
+		Content:     strconv.Itoa(relativeIdx),
+	}
+	sendMessage, _ := json.Marshal(resp)
+	g.PlayerConns[playerIdx].WriteMessage(websocket.TextMessage, sendMessage)
+}
+
 func (g *Game) sendIncreaseScores(score int) {
 	resp := ResponseMessage{
 		MessageType: increaseScores,

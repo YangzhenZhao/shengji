@@ -16,6 +16,7 @@ export const PLAY_TURN = "play_trun"
 export const SHOW_PLAY_CARDS = "show_play_cards"
 export const INCREASE_SCORES = "increase_scores"
 export const ROUND_END = "round_end"
+export const BIGGEST_POSITION = "biggest_position"
 
 export const FULL_POKER_NUM = 25
 

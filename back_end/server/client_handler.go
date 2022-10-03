@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/YangzhenZhao/shengji/back_end/server/dto"
 	"github.com/gorilla/websocket"
+
+	"github.com/YangzhenZhao/shengji/back_end/server/dto"
 )
 
 func (c *Client) playerMessageHandler() {

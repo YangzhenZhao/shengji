@@ -24,6 +24,7 @@ const (
 	showPlayCards    responseMessageType = "show_play_cards"
 	increaseScores   responseMessageType = "increase_scores"
 	roundEnd         responseMessageType = "round_end"
+	biggestPostion   responseMessageType = "biggest_position"
 )
 
 type RequestMessage struct {

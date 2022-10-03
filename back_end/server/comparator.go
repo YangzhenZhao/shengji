@@ -153,7 +153,7 @@ func (c *Comparator) isDifferentColors(cards dto.Cards) bool {
 
 func (c *Comparator) getCardColor(card *dto.Poker) string {
 	if card.Number == c.game.PlayNumber() ||
-		card.Color == "joker" ||
+		card.Number == "joker" ||
 		card.Color == c.game.MasterColor {
 		return "master"
 	}

@@ -8,6 +8,7 @@ import flowerImages from "../assets/flower_color.jpeg"
 import jokerImage from "../assets/joker.webp"
 import zhuangImage from "../assets/zhuang.jpg"
 import miniStarImg from "../assets/ministar.png"
+import goodImg from "../assets/good.jpeg"
 import kouGreyImage from "../assets/kou_hei.gif"
 import kouLightImage from "../assets/kou_light.gif"
 import playCardsGreyImg from "../assets/chu_pai_grey.gif"
@@ -21,7 +22,7 @@ import {
     ROOM_LIST_RESPONSE, EXISTS_PLAYERS_RESPONSE, DEAL_POKER, MATCH_BEGIN,
     SHOW_MASTER_DONE, FULL_POKER_NUM, SHOW_MASTER_RESPONSE, showColorIdxMap, REVEIVE_HOLE_CARDS,
     KOU_CARDS, PLAY_TURN, PLAY_CARDS, SHOW_PLAY_CARDS, ShowPlayCardsResponse,
-    INCREASE_SCORES, ROUND_END, CardValueMap,
+    INCREASE_SCORES, ROUND_END, CardValueMap, BIGGEST_POSITION,
 } from './dto'
 import dayjs from 'dayjs';
 
@@ -125,6 +126,7 @@ export class GameScene extends Phaser.Scene {
     constructor(playerName: string) {
         super("GameScene")
         this.playerName = playerName
+        this.biggestPosition = -1
         this.playersTexts = []
         this.players = [{name: playerName, prepare: false}, null, null, null]
         this.websocket = null
@@ -161,6 +163,7 @@ export class GameScene extends Phaser.Scene {
         this.load.image("jokerImage", jokerImage)
         this.load.image("zhuangImage", zhuangImage)
         this.load.image("miniStarImage", miniStarImg)
+        this.load.image("goodImage", goodImg)
         this.load.image("kouGreyImage", kouGreyImage)
         this.load.image("kouLightImage", kouLightImage)
         this.load.image("playCardsGreyImg", playCardsGreyImg)
@@ -179,7 +182,8 @@ export class GameScene extends Phaser.Scene {
     create() {
         this.add.image(0, 0, 'bg2').setOrigin(0).setDisplaySize(screenWidth, screenHeight);
 
-        this.add.image(500, 500, 'miniStarImage').setOrigin(0, 0).setDisplaySize(50, 50).setInteractive()
+        // this.add.image(500, 500, 'miniStarImage').setOrigin(0, 0).setDisplaySize(50, 50).setInteractive()
+        // this.add.image(500, 500, 'goodImage').setOrigin(0, 0).setDisplaySize(50, 50).setInteractive()
 
         this.playersTexts[0] = this.add.text(playerTextPositions[0].x, playerTextPositions[0].y, this.playerName).setColor('white').setFontSize(28).setShadow(2, 2, "#333333", 2, true, true)
         this.playersTexts[1] = this.playersTexts[1] = this.add.text(playerTextPositions[1].x, playerTextPositions[1].y, '空闲位置').setColor('red').setFontSize(28).setShadow(2, 2, "#333333", 2, true, true);
@@ -291,13 +295,15 @@ export class GameScene extends Phaser.Scene {
                 for (let i = 0; i < this.playCards.length; i++) {
                     this.removePoker(this.playCards[i])
                 }
-                this.showPlayCards(0, this.playCards)
+                this.showPlayCards(0, this.playCards, false)
                 this.showPokers()
                 this.playCardsImg.destroy()
             }.bind(this))
         } else if (messageType === SHOW_PLAY_CARDS) {
             let showPlayCardsResponse: ShowPlayCardsResponse = JSON.parse(content)
-            this.showPlayCards(showPlayCardsResponse.showIdx, showPlayCardsResponse.cards)
+            this.showPlayCards(showPlayCardsResponse.showIdx, showPlayCardsResponse.cards, false)
+        } else if (messageType === BIGGEST_POSITION) {
+            this.showBiggestPlayCards(Number(content))
         } else if (messageType === INCREASE_SCORES) {
             this.score += Number(content)
             this.showScore.setText("得分\n"+this.score)
@@ -309,21 +315,49 @@ export class GameScene extends Phaser.Scene {
     destoryShowPlayCardsImgs() {
         for (let i = 0; i < 4; i++) {
             for (let j = 0; j < this.showPlayCardsImgs[i].length; j++) {
+                let attachBiggest = this.showPlayCardsImgs[i][j].getData("biggest")
+                if (attachBiggest !== undefined) {
+                    attachBiggest.destroy()
+                }
                 this.showPlayCardsImgs[i][j].destroy()
             }
         }
+        this.biggestPosition = -1
     }
 
-    showPlayCards(idx: number, cards: Poker[]) {
+    showBiggestPlayCards(idx: number) {
+        if (this.biggestPosition !== -1) {
+            let cardsLen = this.showPlayCardsImgs[this.biggestPosition].length
+            let attachBiggest = this.showPlayCardsImgs[this.biggestPosition][cardsLen - 1].getData("biggest")
+            if (attachBiggest !== undefined) {
+                attachBiggest.destroy()
+            }
+        }
+        this.biggestPosition = idx
+        let cardsLen = this.showPlayCardsImgs[idx].length
+        let img = this.showPlayCardsImgs[idx][cardsLen - 1]
+        let x = img.x + img.width - 30
+        let y = img.y + img.height  - 30
+        let attachStarImg = this.add.image(x, y, 'goodImage').setOrigin(0, 0).setDisplaySize(30, 30).setInteractive()
+        img.setData("biggest", attachStarImg)
+    }
+
+    showPlayCards(idx: number, cards: Poker[], isBiggest: boolean) {
+        let image = null
         for (let i = 0; i < cards.length; i++) {
-            this.showPlayCardsImgs[idx].push(
-                this.add.sprite(
-                    showPokerPositions[idx][i].x,
-                    showPokerPositions[idx][i].y,
-                    'poker',
-                    getPokerPosition(cards[i])
-                ).setOrigin(0, 0).setInteractive()
-            )
+            image = this.add.sprite(
+                showPokerPositions[idx][i].x,
+                showPokerPositions[idx][i].y,
+                'poker',
+                getPokerPosition(cards[i])
+            ).setOrigin(0, 0).setInteractive()
+            this.showPlayCardsImgs[idx].push(image)
+        }
+        if (isBiggest) {
+            let x = image.x + image.width - 30
+            let y = image.y + image.height - 30
+            let attachStarImg = this.add.image(x, y, 'goodImage').setOrigin(0, 0).setDisplaySize(30, 30).setInteractive()
+            image.setData("biggest", attachStarImg)
         }
     }
 

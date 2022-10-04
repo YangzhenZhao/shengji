@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"log"
 	"sort"
 
@@ -48,6 +49,7 @@ func buildComparator(
 }
 
 func (c *Comparator) addCards(cards dto.Cards, position int) {
+	fmt.Printf("------- %d %s %d\n", position, c.firstCardsType, c.winPosition)
 	if c.isDifferentColors(cards) {
 		return
 	}
@@ -70,6 +72,7 @@ func (c *Comparator) addCards(cards dto.Cards, position int) {
 
 func (c *Comparator) isNewCardsGreater(cards dto.Cards, newCardColor string) bool {
 	newCardsType := c.getCardsType(cards)
+	fmt.Printf("------- %s %s\n", newCardsType, c.firstCardsType)
 	switch c.firstCardsType {
 	case singleCard:
 		return c.isNewSingleCardGreater(cards[0], newCardColor)
@@ -125,6 +128,11 @@ func (c *Comparator) getCardsType(cards dto.Cards) cardsType {
 func (c *Comparator) isTractorsCards(cards dto.Cards) bool {
 	if len(cards) == 0 || len(cards)%2 == 1 || len(cards) < 4 {
 		return false
+	}
+	for i := 0; i < len(cards); i += 2 {
+		if cards[i].Color != cards[i+1].Color || cards[i].Number != cards[i+1].Number {
+			return false
+		}
 	}
 	for i := 2; i < len(cards); i += 2 {
 		wantRound := common.NextRoundMap[cards[i-1].Number]

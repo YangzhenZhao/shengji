@@ -46,6 +46,20 @@ func Test_isTractorsCards(t *testing.T) {
 			},
 			wantIsTractors: true,
 		},
+		{
+			name: "unhappy path",
+			args: args{
+				firstPosition: 3,
+				game:          &Game{Round: "2"},
+				firstCards: dto.Cards{
+					{Color: "club", Number: "A"},
+					{Color: "club", Number: "9"},
+					{Color: "club", Number: "8"},
+					{Color: "club", Number: "6"},
+				},
+			},
+			wantIsTractors: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -69,7 +83,7 @@ func Test_comparator(t *testing.T) {
 		wantWinPostions []int
 	}{
 		{
-			name: "happy path",
+			name: "happy path - single",
 			args: args{
 				firstPosition: 3,
 				game: &Game{
@@ -96,6 +110,47 @@ func Test_comparator(t *testing.T) {
 				},
 			},
 			wantWinPostions: []int{1, 1, 0},
+		},
+		{
+			name: "happy path - tractors",
+			args: args{
+				firstPosition: 3,
+				game: &Game{
+					Round:           "2",
+					FirstTeamRound:  "2",
+					SecondTeamRound: "2",
+					Banker:          first,
+					MasterColor:     "spade",
+				},
+				firstCards: dto.Cards{
+					{Color: "club", Number: "3"},
+					{Color: "club", Number: "3"},
+					{Color: "club", Number: "4"},
+					{Color: "club", Number: "4"},
+				},
+			},
+			otherPosition: []int{1, 2, 0},
+			otherCards: []dto.Cards{
+				{
+					{Color: "club", Number: "K"},
+					{Color: "club", Number: "8"},
+					{Color: "club", Number: "10"},
+					{Color: "club", Number: "6"},
+				},
+				{
+					{Color: "club", Number: "A"},
+					{Color: "club", Number: "9"},
+					{Color: "club", Number: "8"},
+					{Color: "club", Number: "6"},
+				},
+				{
+					{Color: "heart", Number: "7"},
+					{Color: "heart", Number: "8"},
+					{Color: "heart", Number: "9"},
+					{Color: "heart", Number: "J"},
+				},
+			},
+			wantWinPostions: []int{3, 3, 3},
 		},
 	}
 	for _, tt := range tests {

@@ -482,10 +482,10 @@ export class GameScene extends Phaser.Scene {
 
     clearPokers() {
         for (let i = 0; i < this.pokerImages.length; i++) {
-            this.pokerImages[i].destroy()
             let attachStar = this.pokerImages[i].getData("star")
+            this.pokerImages[i].destroy()
             if (attachStar !== undefined) {
-                attachStar.destory()
+                attachStar.destroy()
             }
         }
         this.pokerImages = []

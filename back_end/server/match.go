@@ -44,11 +44,12 @@ func (m *Match) Run() {
 		m.sendGameToClients(game)
 		gameResult := game.Run()
 		if m.isFinish(game, gameResult) {
-			log.Printf("比赛结束!, 获胜方: %d\n", gameBanker)
+			log.Printf("比赛结束!")
 			break
 		}
 		log.Println(gameResult)
 		isFristRound = false
+		gameBanker = game.Banker
 		if gameResult.FinalWinTeam == dto.FirstTeam {
 			if gameResult.UpLevel > 0 {
 				firstTeamRound = common.NextRoundMap[firstTeamRound]
@@ -64,9 +65,28 @@ func (m *Match) Run() {
 				gameBanker = banker(turnNextMap[int(gameBanker)])
 			}
 		}
+		m.sendGameResult(firstTeamRound, secondTeamRound, gameBanker)
+	}
+}
 
-		stuckChan := make(chan bool)
-		stuckChan <- false
+func (m *Match) sendGameResult(firstTeamRound, secondTeamRound string, banker banker) {
+	for i := 0; i < 4; i++ {
+		gameResult := dto.GameResultResponse{
+			OurRound:      firstTeamRound,
+			OtherRound:    secondTeamRound,
+			BankerPostion: int(common.GetRelativePos(i, int(banker)-1)),
+		}
+		if i >= 2 {
+			gameResult.OurRound = secondTeamRound
+			gameResult.OtherRound = firstTeamRound
+		}
+		content, _ := json.Marshal(gameResult)
+		resp := ResponseMessage{
+			MessageType: gameResultResponse,
+			Content:     string(content),
+		}
+		sendMessage, _ := json.Marshal(resp)
+		m.PlayerConns[i].WriteMessage(websocket.TextMessage, sendMessage)
 	}
 }
 

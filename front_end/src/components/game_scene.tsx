@@ -17,12 +17,12 @@ import { nanoid } from 'nanoid'
 import { Match } from './match';
 import { GameDetail } from './game_detail';
 import { 
-    Player, Poker, Cards, SPADE, HEART, CLUB, DIANMOND, getPokerPosition,
+    Player, Poker, Cards, GameResult, SPADE, HEART, CLUB, DIANMOND, getPokerPosition,
     SET_PLAYER_NAME_REQUEST, JOIN_ROOM_REQUEST, PREPARE_REQUEST, 
     ROOM_LIST_RESPONSE, EXISTS_PLAYERS_RESPONSE, DEAL_POKER, MATCH_BEGIN,
     SHOW_MASTER_DONE, FULL_POKER_NUM, SHOW_MASTER_RESPONSE, showColorIdxMap, REVEIVE_HOLE_CARDS,
     KOU_CARDS, PLAY_TURN, PLAY_CARDS, SHOW_PLAY_CARDS, ShowPlayCardsResponse,
-    INCREASE_SCORES, ROUND_END, CardValueMap, BIGGEST_POSITION,
+    INCREASE_SCORES, ROUND_END, CardValueMap, BIGGEST_POSITION, GAME_RESULT,
 } from './dto'
 import dayjs from 'dayjs';
 
@@ -114,6 +114,7 @@ export class GameScene extends Phaser.Scene {
     public zhuangColorImg: Phaser.GameObjects.Image
     public kouImg: Phaser.GameObjects.Image
     public playCardsImg: Phaser.GameObjects.Image
+    public zhuangImg: Phaser.GameObjects.Image
     public prepareOkImg: Phaser.GameObjects.Image[]
     public playersCards: Cards
     public match: Match
@@ -123,6 +124,7 @@ export class GameScene extends Phaser.Scene {
     public showMasterImages: Phaser.GameObjects.Image[]
     public buckleCards: Poker[]
     public playCards: Poker[]
+    public isFirstGame: boolean
     constructor(playerName: string) {
         super("GameScene")
         this.playerName = playerName
@@ -153,6 +155,7 @@ export class GameScene extends Phaser.Scene {
         this.heartCheckServerTimeout = 30000 // 30s
         this.heartCheckTimeoutObj = null
         this.heartCheckServerTimeoutObj = null
+        this.isFirstGame = true
     }
 
     preload () {
@@ -309,7 +312,22 @@ export class GameScene extends Phaser.Scene {
             this.showScore.setText("得分\n"+this.score)
         } else if (messageType === ROUND_END) {
             this.destoryShowPlayCardsImgs()
+        } else if (messageType === GAME_RESULT) {
+            this.initNextGame(JSON.parse(content))
         }
+    }
+
+    initNextGame(gameResult: GameResult) {
+        this.gameDetail = new GameDetail(this)
+        if (this.zhuangColorImg) {
+            this.zhuangColorImg.destroy()
+        }
+        this.showScore.setText("得分\n0")
+        this.score = 0
+        this.isFirstGame = false
+        this.ourPlayNumberText = this.add.text(screenWidth - 200, 10, "我方 " + gameResult.ourRound).setFontSize(20).setShadow(2, 2, "#333333", 2, true, true);
+        this.yourPlayNumberText = this.add.text(screenWidth - 200, 30, "对方 " + gameResult.otherRound).setFontSize(20).setShadow(2, 2, "#333333", 2, true, true);
+        this.showZhuang(gameResult.bankerPostion)
     }
 
     destoryShowPlayCardsImgs() {
@@ -661,16 +679,20 @@ export class GameScene extends Phaser.Scene {
             clearInterval(setIntervalID)
             this.destoryAllShowMaster()
             this.sendMessageToServer(SHOW_MASTER_DONE, "")
-            this.showZhuang()
+            if (this.isFirstGame) {
+                this.showZhuang(this.gameDetail.showMasterPosition)
+            }
         }, 9000)
     }
 
-    showZhuang() {
-        let pos = this.gameDetail.showMasterPosition
+    showZhuang(pos: number) {
         if (pos === -1) {
             return
         }
-        this.add.image(zhuangPositions[pos].x, zhuangPositions[pos].y, 'zhuangImage').setOrigin(0, 0).setDisplaySize(30, 20).setInteractive()
+        if (this.zhuangImg) {
+            this.zhuangImg.destroy()
+        }
+        this.zhuangImg = this.add.image(zhuangPositions[pos].x, zhuangPositions[pos].y, 'zhuangImage').setOrigin(0, 0).setDisplaySize(30, 20).setInteractive()
     }
 
     sendMessageToServer(messageType: string, content: string) {

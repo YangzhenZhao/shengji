@@ -73,3 +73,9 @@ type ShowPlayCardsResponse struct {
 	ShowIdx int      `json:"showIdx"`
 	Cards   []*Poker `json:"cards"`
 }
+
+type GameResultResponse struct {
+	OurRound      string `json:"ourRound"`
+	OtherRound    string `json:"otherRound"`
+	BankerPostion int    `json:"bankerPostion"`
+}

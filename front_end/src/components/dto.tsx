@@ -17,12 +17,19 @@ export const SHOW_PLAY_CARDS = "show_play_cards"
 export const INCREASE_SCORES = "increase_scores"
 export const ROUND_END = "round_end"
 export const BIGGEST_POSITION = "biggest_position"
+export const GAME_RESULT = "game_result"
 
 export const FULL_POKER_NUM = 25
 
 export interface Player {
     name: string
     prepare: boolean
+}
+
+export interface GameResult {
+    ourRound: string
+    otherRound: string
+    bankerPostion: number
 }
 
 export interface Poker {

@@ -155,7 +155,9 @@ func (g *Game) Run() *dto.GameResult {
 	go func() {
 		for gameReq := range g.ShowMasterChan {
 			log.Println("receive game req.........")
-			g.Banker = banker(gameReq.Position)
+			if g.IsFristRound {
+				g.Banker = banker(gameReq.Position)
+			}
 			g.MasterColor = gameReq.Req.Color
 			if gameReq.Req.IsSelfProtect || gameReq.Req.IsOppose {
 				g.IsProtect = true

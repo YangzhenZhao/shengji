@@ -151,7 +151,6 @@ export class GameDetail {
 
     public showMaster() {
         let showCnt = 0
-        console.log("hhhhhhhh")
         if (this.gameScene.gameDetail.isCanShowJoker()) {
             let image = this.gameScene.add.image(showMasterXPositions[showCnt], showMasterYPosition, 'jokerImage').setOrigin(0, 0).setDisplaySize(48, 48).setInteractive()
             this.gameScene.showMasterImages.push(image)
